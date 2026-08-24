@@ -70,3 +70,4 @@ mlruns/
 .Trashes
 ehthumbs.db
 Thumbs.db
+*.Identifier

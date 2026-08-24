@@ -45,13 +45,11 @@ init_data_folders: ## Create local directories for data and model outputs
 
 clean: ## Clean Python cache, build files, and hidden OS files
 	@echo "🧹 Cleaning up project..."
-	@rm -f */version.txt
-	@rm -f .coverage
-	@rm -fr **/__pycache__ **/*.pyc
-	@rm -fr **/build **/dist
-	@rm -fr *.dist-info
-	@rm -fr *.egg-info
-	@rm -f **/.DS_Store
-	@rm -f **/*Zone.Identifier
-	@rm -f **/.ipynb_checkpoints
+	@find . -type d -name "__pycache__" -exec rm -rf {} +
+	@find . -type d -name ".ipynb_checkpoints" -exec rm -rf {} +
+	@find . -type f -name "*.pyc" -delete
+	@find . -type f -name ".coverage" -delete
+	@find . -type f -name "*Zone.Identifier" -delete
+	@find . -type f -name ".DS_Store" -delete
+	@rm -rf build/ dist/ *.egg-info/ *.dist-info/
 	@echo "✅ Cleaned up successfully."
