@@ -1,4 +1,4 @@
-# Environnements et secrets
+# Environments and secrets
 .env
 .envrc
 .env.yaml
@@ -7,17 +7,17 @@
 env/
 venv/
 
-# Fichiers système et Python locaux
+# Local system and Python files
 .python-version
 **/__pycache__/
 *.pyc
 .pytest_cache/
-taxifare.egg-info/
+*.egg-info/
 
-# Dossiers inutiles en prod
+# Development folders (not needed in production)
 tests/
 notebooks/
-taxifare/interface/
+package_folder/interface/
 data/
 
 # Git
@@ -25,10 +25,10 @@ data/
 .gitignore
 .github/
 
-# Documentation
+# Documentation and setup files
 docker-compose.yml
 Makefile
 README.md
 
-# Dépendances de développement
+# Development dependencies
 requirements_dev.txt

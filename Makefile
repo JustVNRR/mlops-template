@@ -15,6 +15,7 @@ SA_EMAIL = $(SA_NAME)@$(GCP_PROJECT).iam.gserviceaccount.com
 # include make/docker.mk
 # include make/cloudrun.mk
 # include make/pipeline.mk
+# include make/github.mk
 # include make/tests.mk
 include make/*.mk
 
