@@ -19,16 +19,12 @@ from package_folder.ml_logic.registry import DEFAULT_ALIAS, load_model
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
-    Load the model at startup — without making that startup fail.
+    Load the model at startup, without letting that startup fail.
 
-    The previous version called `load_model()` and ran `assert model is not
-    None` AT MODULE LEVEL. Consequence: with no trained model, importing this
-    file raised. So the API would not start, and above all NO test could run —
-    not even the one for the `/` route.
-
-    Here the API always starts: `/predict` answers 503 until a model is loaded,
-    with the exact cause of the failure. `app.state.model_error` keeps that
-    message around for diagnosis.
+    The API must start even with no trained model: `/predict` then answers 503
+    with the exact cause, while every other route stays reachable. That is what
+    keeps the service deployable and testable independently of training.
+    `app.state.model_error` holds the failure message for diagnosis.
     """
     app.state.model = None
     app.state.model_error = None
@@ -134,23 +130,11 @@ def model_info(request: Request) -> dict:
 @app.put("/model")
 def update_model(stage: str = DEFAULT_ALIAS) -> dict:
     """
-    Reload or swap the active machine learning model in application state on-the-fly.
+    Hot-swap the model held in memory, with no service restart.
 
-    This endpoint allows hot-swapping the model loaded in memory without
-    requiring an API process restart or causing service downtime.
-
-    Args:
-        stage (str, optional): MLflow ALIAS of the model to load. The old
-                               "stages" (Staging/Production) are obsolete since
-                               MLflow 2.x — see registry.mlflow_set_alias.
-                               Ignored when MODEL_TARGET=local, where the most
-                               recent model is always loaded.
-
-    Returns:
-        dict: Confirmation payload detailing update status and active model stage.
-
-    Raises:
-        HTTPException: 404 if the target model cannot be found or loaded.
+    `stage` is the MLflow alias of the model to load; it is ignored when
+    MODEL_TARGET=local, where the most recent model always wins. Answers 404
+    when the model cannot be found and 500 when loading it fails.
     """
     try:
         new_model = load_model(stage=stage)

@@ -72,10 +72,10 @@ def _latest_file(directory: Path, pattern: str = "*") -> Path | None:
     """
     Return the most RECENTLY MODIFIED file matching `pattern`.
 
-    Sorting is by modification time, never by name. Alphabetical sorting (the
-    old `sorted(paths)[-1]`) picks 'zzz.pkl' over the latest training run, and
-    becomes silently wrong as soon as a file does not follow the
-    <timestamp>.pkl convention — a `best_model.pkl`, for instance.
+    Sorting is by modification time, never by name: alphabetical order would
+    pick 'zzz.pkl' over the latest training run, and turns silently wrong as
+    soon as a file does not follow the <timestamp>.pkl convention — a
+    `best_model.pkl`, for instance.
     """
     if not directory.is_dir():
         return None
@@ -97,9 +97,8 @@ def save_results(params: dict | None = None, metrics: dict | None = None) -> Non
     """
     timestamp = time.strftime("%Y%m%d-%H%M%S")
 
-    # 1. Local JSON save.
-    #    The previous version used pickle: unreadable to the eye, undiffable in
-    #    git, and impossible to load back from another Python version.
+    # 1. Local JSON save. JSON is readable, diffs in git, and loads back from
+    #    any Python version — three things pickle does not offer.
     if params is not None:
         _write_json(PARAMS_DIR / f"{timestamp}.json", params)
 
@@ -170,8 +169,8 @@ def load_model(stage: str = DEFAULT_ALIAS) -> Any | None:
     - or from GCS (most recent one) if MODEL_TARGET == 'gcs'
     - or from MLflow, by alias, if MODEL_TARGET == 'mlflow'
 
-    `stage` is kept for signature compatibility; it now designates the MLflow
-    ALIAS (see mlflow_set_alias).
+    `stage` is a legacy parameter name: it designates the MLflow ALIAS (see
+    mlflow_set_alias).
     """
     if MODEL_TARGET == "local":
         print(Fore.BLUE + "\nLoad latest model from local registry..." + Style.RESET_ALL)
@@ -201,7 +200,7 @@ def load_model(stage: str = DEFAULT_ALIAS) -> Any | None:
 
 
 # ==============================================================================
-# 🏷️ MLFLOW ALIASES (replacing "model stages")
+# 🏷️ MLFLOW ALIASES
 # ==============================================================================
 def mlflow_latest_version() -> str | None:
     """Return the highest version registered under MLFLOW_MODEL_NAME."""
@@ -222,10 +221,10 @@ def mlflow_set_alias(version: str | int | None = None, alias: str = DEFAULT_ALIA
     """
     Point `alias` at a given version of the registered model.
 
-    Replaces the obsolete "model stages" API (`transition_model_version_stage`):
-    the Staging/Production stages have been deprecated since MLflow 2.x in
-    favour of ALIASES. An alias is more flexible — a single version can carry
-    several, and promoting a model no longer wipes the previous one's history.
+    Aliases are the current mechanism: the Staging/Production model stages are
+    deprecated since MLflow 2.x. An alias is also more flexible — a single
+    version can carry several, and promoting a model leaves the other versions
+    untouched.
 
     If `version` is None, the latest registered version is used.
     """
@@ -267,9 +266,8 @@ def mlflow_run(func):
 
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        # A run left open (previous exception, interrupted notebook cell…)
-        # would make start_run() fail. We close it rather than let an error
-        # surface that has nothing to do with the current call.
+        # A run left open (earlier exception, interrupted notebook cell…) makes
+        # start_run() fail. Close it first.
         if mlflow.active_run():
             mlflow.end_run()
 

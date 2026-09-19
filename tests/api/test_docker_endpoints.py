@@ -48,9 +48,9 @@ def service_url() -> str:
     """
     URL of the running container.
 
-    The detection lives in a fixture rather than at module level: the previous
-    version ran `docker ps` AT IMPORT time, i.e. during collection, including
-    for tests from another file.
+    The detection lives in a fixture rather than at module level: at import time
+    `docker ps` would run during collection, including for test files that need
+    no container at all.
     """
     port = _running_container_port()
 

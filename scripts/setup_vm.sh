@@ -5,19 +5,16 @@
 # Run by `make vm_setup`, which uploads this script to the VM and executes it
 # there.
 #
-# Historically this script installed pyenv + pyenv-virtualenv and created a
-# named virtualenv, whose name and Python version were passed as arguments.
-# The project moved to uv: `uv sync` reads `.python-version`, downloads the
-# matching interpreter and installs the dependencies into .venv. There is
-# therefore no longer any version or environment name to pass around.
+# The VM needs no pre-installed Python: `uv sync` reads `.python-version`,
+# downloads the matching interpreter and installs the dependencies into .venv.
+# No version or environment name has to be passed around.
 set -euo pipefail
 
 echo "🚀 Provisioning the VM..."
 
 # --- 1. System packages ---
-# build-essential is no longer needed to compile CPython (uv downloads
-# prebuilt binaries), but it remains useful as soon as a dependency ships
-# native code.
+# build-essential is not needed to compile CPython (uv downloads prebuilt
+# binaries), but it becomes useful as soon as a dependency ships native code.
 echo "📦 Installing system packages..."
 sudo apt-get update
 sudo apt-get install -y make curl git zsh direnv
