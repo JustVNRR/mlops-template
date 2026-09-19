@@ -19,6 +19,7 @@ run_all: run_preprocess run_train run_evaluate run_pred ## Run the full pipeline
 run_api: ## Run the FastAPI application locally with hot-reloading
 	@echo "🚀 Starting FastAPI locally..."
 	uv run uvicorn {{ package_name }}.api.fast:app --host 0.0.0.0 --port 8000 --reload
-
+{% if 'prefect' in modules %}
 run_workflow: ## Run the Prefect orchestration workflow
 	PREFECT__LOGGING__LEVEL=$(PREFECT_LOG_LEVEL) uv run python -m {{ package_name }}.interface.workflow
+{% endif %}

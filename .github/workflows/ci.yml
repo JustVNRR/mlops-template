@@ -193,23 +193,28 @@ jobs:
                    make/gcp.mk make/bigquery.mk make/vm.mk make/cloudrun.mk \
                    scripts/setup_vm.sh \
                    tests/infrastructure/test_gcp_setup.py \
-                   tests/api/test_cloud_endpoints.py ; do
+                   tests/api/test_cloud_endpoints.py \
+                   src/minimal_project/interface/workflow.py ; do
             if [ -e "$f" ]; then echo "❌ $f should have been excluded"; exit 1; fi
           done
 
           # A surviving import only shows up at runtime, on someone else's
           # machine: check for it here.
-          if grep -rn "google\.cloud\|import mlflow" src/ tests/ ; then
+          if grep -rn "google\.cloud\|import mlflow\|prefect" src/ tests/ ; then
             echo "❌ a source file still imports an optional package"
             exit 1
           fi
 
-          if grep -rn -i "docker\|gcp\|bigquery\|gcloud\|mlflow" \
-               README.md .github/ .env.sample .gitignore ; then
-            echo "❌ a rendered file still mentions an optional block"
-            exit 1
-          fi
-          echo "✅ nothing from the docker, gcp or mlflow building block survived"
+          # `.dockerignore` is itself excluded when docker is unchecked, so the
+          # loop skips what is not there.
+          for f in README.md .env.sample .gitignore .dockerignore .github ; do
+            [ -e "$f" ] || continue
+            if grep -rn -i "docker\|gcp\|bigquery\|gcloud\|mlflow\|prefect" "$f" ; then
+              echo "❌ $f still mentions an optional building block"
+              exit 1
+            fi
+          done
+          echo "✅ no optional building block survived"
 
       - name: Install dependencies
         working-directory: ${{ runner.temp }}/minimal

@@ -25,8 +25,8 @@ def preprocess(min_date: str | None = None, max_date: str | None = None) -> None
 
     `min_date` / `max_date` only matter for a queryable source; the
     demonstration dataset ignores them. Keeping them optional lets
-    `make run_preprocess` run without arguments, while still allowing the
-    Prefect workflow to target a specific period.
+    `make run_preprocess` run without arguments, while still allowing an
+    orchestrator to target a specific period.
     """
     logger.info("Use case: preprocess")
 

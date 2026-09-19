@@ -30,9 +30,9 @@ dist/
 tests/
 notebooks/
 data/
-mlruns/
-.prefect/
-
+{% if 'mlflow' in modules %}mlruns/
+{% endif %}{% if 'prefect' in modules %}.prefect/
+{% endif %}
 # ==============================================================================
 # 🗂️ GIT, TOOLING AND DOCUMENTATION
 # ==============================================================================

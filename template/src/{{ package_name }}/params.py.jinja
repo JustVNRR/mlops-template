@@ -111,12 +111,13 @@ MLFLOW_TRACKING_URI = _optional("MLFLOW_TRACKING_URI")
 MLFLOW_EXPERIMENT = _optional("MLFLOW_EXPERIMENT")
 MLFLOW_MODEL_NAME = _optional("MLFLOW_MODEL_NAME")
 
-{% endif %}# --- Prefect ---
+{% endif %}{% if 'prefect' in modules %}# --- Prefect ---
 PREFECT_FLOW_NAME = _optional("PREFECT_FLOW_NAME")
 PREFECT_LOG_LEVEL = _optional("PREFECT_LOG_LEVEL")
+# Start of the period the workflow evaluates the models over
 EVALUATION_START_DATE = _optional("EVALUATION_START_DATE")
 
-# --- Logging ---
+{% endif %}# --- Logging ---
 # Verbosity of the application logs (see logging_config.py). INFO shows the
 # pipeline milestones; DEBUG adds the per-file chatter.
 LOG_LEVEL = (_optional("LOG_LEVEL") or "INFO").upper()

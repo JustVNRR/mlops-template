@@ -37,7 +37,8 @@ dependencies = [
 
   # --- Model lifecycle ---
 {% if 'mlflow' in modules %}  "mlflow>=2.14",
-{% endif %}  "prefect>=2.19",
+{% endif %}{% if 'prefect' in modules %}  "prefect>=2.19",
+{% endif %}
 
   # --- Utilities ---
   "python-dotenv>=1.0",

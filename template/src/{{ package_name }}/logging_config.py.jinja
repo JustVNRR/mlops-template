@@ -23,7 +23,12 @@ from {{ package_name }}.params import LOG_LEVEL
 # replaced. Its autolog lines therefore keep MLflow's format. Overriding that
 # would mean re-running the capture after every library import — not worth it for
 # library diagnostics, and fragile.
-{% endif %}INTERCEPTED_LOGGERS = ("uvicorn", "uvicorn.error", "uvicorn.access", "prefect")
+{% endif %}INTERCEPTED_LOGGERS = (
+    "uvicorn",
+    "uvicorn.error",
+    "uvicorn.access",
+{% if 'prefect' in modules %}    "prefect",
+{% endif %})
 
 _configured = False
 
