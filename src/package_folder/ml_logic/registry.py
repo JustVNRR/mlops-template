@@ -7,7 +7,7 @@ from typing import Any
 
 import mlflow
 import numpy as np
-from colorama import Fore, Style
+from loguru import logger
 from mlflow.tracking import MlflowClient
 
 from package_folder.params import (
@@ -65,7 +65,7 @@ def _write_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8") as file:
         json.dump(_to_jsonable(payload), file, indent=2, ensure_ascii=False)
-    print(f"✅ Saved: {path}")
+    logger.debug(f"Saved: {path}")
 
 
 def _latest_file(directory: Path, pattern: str = "*") -> Path | None:
@@ -105,7 +105,7 @@ def save_results(params: dict | None = None, metrics: dict | None = None) -> Non
     if metrics is not None:
         _write_json(METRICS_DIR / f"{timestamp}.json", metrics)
 
-    print(Fore.GREEN + f"✅ Results saved locally ({LOCAL_REGISTRY_PATH})" + Style.RESET_ALL)
+    logger.info(f"Results saved locally ({LOCAL_REGISTRY_PATH})")
 
     # 2. MLflow save.
     #    Reminder: log_params/log_metrics only make sense INSIDE an active run,
@@ -115,7 +115,7 @@ def save_results(params: dict | None = None, metrics: dict | None = None) -> Non
             mlflow.log_params(params)
         if metrics is not None:
             mlflow.log_metrics(metrics)
-        print("✅ Results saved on MLflow")
+        logger.info("Results saved on MLflow")
 
 
 def save_model(model: Any) -> None:
@@ -149,7 +149,7 @@ def save_model(model: Any) -> None:
     with open(model_path, "wb") as file:
         pickle.dump(model, file)
 
-    print(Fore.GREEN + f"✅ Model saved locally: {model_path}" + Style.RESET_ALL)
+    logger.info(f"Model saved locally: {model_path}")
 
     # TODO (MODEL_TARGET='mlflow' — uncomment in the dedicated branch):
     # mlflow.sklearn.log_model(
@@ -173,14 +173,14 @@ def load_model(stage: str = DEFAULT_ALIAS) -> Any | None:
     mlflow_set_alias).
     """
     if MODEL_TARGET == "local":
-        print(Fore.BLUE + "\nLoad latest model from local registry..." + Style.RESET_ALL)
+        logger.info("Load latest model from local registry...")
 
         model_path = _latest_file(MODELS_DIR, pattern="*.pkl")
         if model_path is None:
-            print(f"❌ No model found in {MODELS_DIR}\n   → Train one first: `make run_train`")
+            logger.warning(f"No model found in {MODELS_DIR} - train one first: `make run_train`")
             return None
 
-        print(f"✅ Loading model: {model_path.name}")
+        logger.info(f"Loading model: {model_path.name}")
         with open(model_path, "rb") as file:
             return pickle.load(file)
 
@@ -240,7 +240,7 @@ def mlflow_set_alias(version: str | int | None = None, alias: str = DEFAULT_ALIA
     if version is None:
         version = mlflow_latest_version()
         if version is None:
-            print(f"❌ No registered model named {MLFLOW_MODEL_NAME}")
+            logger.warning(f"No registered model named {MLFLOW_MODEL_NAME}")
             return None
 
     client.set_registered_model_alias(
@@ -249,7 +249,7 @@ def mlflow_set_alias(version: str | int | None = None, alias: str = DEFAULT_ALIA
         version=str(version),
     )
 
-    print(Fore.GREEN + f"✅ {MLFLOW_MODEL_NAME} version {version} is now aliased as '{alias}'" + Style.RESET_ALL)
+    logger.info(f"{MLFLOW_MODEL_NAME} version {version} is now aliased as '{alias}'")
     return None
 
 
@@ -285,7 +285,7 @@ def mlflow_run(func):
             mlflow.autolog()
             results = func(*args, **kwargs)
 
-        print("✅ mlflow_run auto-log done")
+        logger.debug("mlflow_run auto-log done")
 
         return results
 

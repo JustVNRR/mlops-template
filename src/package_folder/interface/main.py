@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from colorama import Fore, Style
+from loguru import logger
 
 from package_folder.ml_logic.data import (
     clean_data,
@@ -28,13 +28,13 @@ def preprocess(min_date: str | None = None, max_date: str | None = None) -> None
     `make run_preprocess` run without arguments, while still allowing the
     Prefect workflow to target a specific period.
     """
-    print(Fore.MAGENTA + "\n⭐️ Use case: preprocess" + Style.RESET_ALL)
+    logger.info("Use case: preprocess")
 
     raw_data = get_raw_data(min_date=min_date, max_date=max_date)
     data_cleaned = clean_data(raw_data)
     save_processed_data(data_cleaned)
 
-    print("✅ preprocess() done \n")
+    logger.info("preprocess() done")
 
 
 @mlflow_run
@@ -55,7 +55,7 @@ def train(
     learning_rate=… for a Keras network. The pipeline does not have to change
     when you swap the estimator.
     """
-    print(Fore.MAGENTA + "\n⭐️ Use case: train" + Style.RESET_ALL)
+    logger.info("Use case: train")
 
     data = load_processed_data()
 
@@ -86,7 +86,7 @@ def train(
         metrics=metrics,
     )
 
-    print("✅ train() done \n")
+    logger.info("train() done")
     return metrics["mae"]
 
 
@@ -101,16 +101,16 @@ def evaluate(
 
     Return the MAE as a float, or None if no model is available.
     """
-    print(Fore.MAGENTA + "\n⭐️ Use case: evaluate" + Style.RESET_ALL)
+    logger.info("Use case: evaluate")
 
     model = load_model(stage=stage)
     if model is None:
-        print("❌ No model to evaluate — train one first: make run_train")
+        logger.warning("No model to evaluate - train one first: make run_train")
         return None
 
     data = load_processed_data()
     if data.empty:
-        print("❌ No data to evaluate on — run this first: make run_preprocess")
+        logger.warning("No data to evaluate on - run this first: make run_preprocess")
         return None
 
     X, y = data[ALL_FEATURES], data[TARGET_COLUMN]
@@ -121,7 +121,7 @@ def evaluate(
         metrics=metrics,
     )
 
-    print("✅ evaluate() done \n")
+    logger.info("evaluate() done")
     return metrics["mae"]
 
 
@@ -131,7 +131,7 @@ def pred(X_pred: pd.DataFrame | None = None) -> np.ndarray | None:
 
     Return the array of predictions, or None if no model is available.
     """
-    print(Fore.MAGENTA + "\n⭐️ Use case: predict" + Style.RESET_ALL)
+    logger.info("Use case: predict")
 
     if X_pred is None:
         # Sample payload: replace it with your own test cases.
@@ -154,7 +154,7 @@ def pred(X_pred: pd.DataFrame | None = None) -> np.ndarray | None:
 
     model = load_model()
     if model is None:
-        print("❌ No model to predict with — train one first: make run_train")
+        logger.warning("No model to predict with - train one first: make run_train")
         return None
 
     # No call to preprocess_features() here: the model is a Pipeline that
@@ -162,7 +162,7 @@ def pred(X_pred: pd.DataFrame | None = None) -> np.ndarray | None:
     # use different means and different categories than training did.
     y_pred = model.predict(X_pred)
 
-    print(f"✅ prediction done: {y_pred}\n")
+    logger.info(f"prediction done: {y_pred}")
     return y_pred
 
 

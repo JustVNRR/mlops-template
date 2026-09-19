@@ -114,6 +114,11 @@ PREFECT_FLOW_NAME = _optional("PREFECT_FLOW_NAME")
 PREFECT_LOG_LEVEL = _optional("PREFECT_LOG_LEVEL")
 EVALUATION_START_DATE = _optional("EVALUATION_START_DATE")
 
+# --- Logging ---
+# Verbosity of the application logs (see logging_config.py). INFO shows the
+# pipeline milestones; DEBUG adds the per-file chatter.
+LOG_LEVEL = (_optional("LOG_LEVEL") or "INFO").upper()
+
 # --- Docker & Artifact Registry ---
 GAR_IMAGE = _optional("GAR_IMAGE")
 GAR_MEMORY = _optional("GAR_MEMORY")
@@ -126,6 +131,7 @@ NOTIFY_AUTHOR = _optional("NOTIFY_AUTHOR")
 ##################  VALIDATIONS  ##################
 VALID_MODEL_TARGETS = ("local", "gcs", "mlflow")
 VALID_DATA_SOURCES = ("demo", "bigquery")
+VALID_LOG_LEVELS = ("TRACE", "DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR", "CRITICAL")
 
 if MODEL_TARGET not in VALID_MODEL_TARGETS:
     raise NameError(
@@ -139,6 +145,13 @@ if DATA_SOURCE not in VALID_DATA_SOURCES:
         f"❌ Invalid DATA_SOURCE: {DATA_SOURCE!r}\n"
         f"   Accepted values: {', '.join(VALID_DATA_SOURCES)}\n"
         f"   → Fix DATA_SOURCE in your .env file ('demo' requires no cloud account)."
+    )
+
+if LOG_LEVEL not in VALID_LOG_LEVELS:
+    raise NameError(
+        f"❌ Invalid LOG_LEVEL: {LOG_LEVEL!r}\n"
+        f"   Accepted values: {', '.join(VALID_LOG_LEVELS)}\n"
+        f"   → Fix LOG_LEVEL in your .env file ('INFO' is a good default)."
     )
 
 ##################  DATA SCHEMA  #################

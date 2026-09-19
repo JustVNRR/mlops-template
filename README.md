@@ -57,6 +57,7 @@ then **deletes itself** along with its Makefile target.
 ├── src/                       # src layout: only importable code lives here
 │   └── package_folder/        #   the Python package (renamed by init_project)
 │       ├── params.py          #     configuration: schema, thresholds, env vars
+│       ├── logging_config.py  #     loguru: one stream, uvicorn and Prefect included
 │       ├── api/
 │       │   ├── fast.py        #     FastAPI application (lifespan, routes)
 │       │   └── schemas.py     #     Pydantic input/output contract
@@ -99,6 +100,7 @@ commented contract). The variables that matter at startup:
 | `DATA_SOURCE` | `demo` | Data source: `demo` (synthetic) or `bigquery` |
 | `DATA_SIZE` | `2000` | Size of the synthetic dataset (`1k`, `200k`, `all`…) |
 | `MAE_THRESHOLD` | `3.0` | Quality bar below which a model gets promoted |
+| `LOG_LEVEL` | `INFO` | Log verbosity: `DEBUG` adds the per-file chatter |
 | `MLFLOW_*`, `GCP_*`, `BUCKET_NAME` | — | Only needed for the cloud |
 
 **The defaults are enough to run everything locally.** No variable is mandatory

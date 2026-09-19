@@ -2,6 +2,7 @@ from datetime import datetime
 
 import requests
 from dateutil.relativedelta import relativedelta
+from loguru import logger
 from prefect import flow, task
 
 from package_folder.interface.main import evaluate, preprocess, train
@@ -50,7 +51,7 @@ def notify(old_mae: float | None, new_mae: float) -> None:
     # With no webhook configured, say so and stop there: a notification that
     # cannot be sent must not fail an otherwise successful pipeline.
     if not NOTIFY_BASE_URL or not NOTIFY_CHANNEL:
-        print("ℹ️  Notifications disabled (NOTIFY_BASE_URL / NOTIFY_CHANNEL empty in .env).")
+        logger.debug("Notifications disabled (NOTIFY_BASE_URL / NOTIFY_CHANNEL empty in .env)")
         return
 
     url = f"{NOTIFY_BASE_URL}/{NOTIFY_CHANNEL}/messages"
@@ -87,7 +88,7 @@ def train_flow() -> dict:
 
     min_date = EVALUATION_START_DATE
     max_date = str(datetime.strptime(min_date, "%Y-%m-%d") + relativedelta(months=1)).split()[0]
-    print(f"📅 Evaluation period: {min_date} → {max_date}")
+    logger.info(f"Evaluation period: {min_date} -> {max_date}")
 
     # 1. Prepare the new data
     preprocess_new_data.submit(min_date=min_date, max_date=max_date).result()
@@ -103,13 +104,13 @@ def train_flow() -> dict:
 
     # 4. Promote if the new model does better
     if old_mae is None:
-        print(f"ℹ️  No model in production: the new one (MAE {new_mae:.3f}) becomes the reference.")
+        logger.info(f"No model in production: the new one (MAE {new_mae:.3f}) becomes the reference")
         should_promote = True
     elif new_mae < old_mae:
-        print(f"🚀 New model replacing old in production with MAE: {new_mae} the Old MAE was: {old_mae}")
+        logger.info(f"New model promoted: MAE {new_mae:.3f}, replacing {old_mae:.3f}")
         should_promote = True
     else:
-        print(f"✅ Old model kept in place with MAE: {old_mae}. The new MAE was: {new_mae}")
+        logger.info(f"Previous model kept: MAE {old_mae:.3f}, the new one scored {new_mae:.3f}")
         should_promote = False
 
     if should_promote:

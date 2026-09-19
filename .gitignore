@@ -83,6 +83,15 @@ mlflow.db-*
 .prefect/
 
 # ==============================================================================
+# 🪵 LOGS (runtime output, never versioned)
+# ==============================================================================
+# Log files accumulate indefinitely and carry more than you expect: request
+# paths, row counts, and occasionally a credential pasted into a message. They
+# are output, not source.
+logs/
+*.log
+
+# ==============================================================================
 # 💻 SYSTEM (invisible files from your OS)
 # ==============================================================================
 .DS_Store

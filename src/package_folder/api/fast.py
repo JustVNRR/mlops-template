@@ -4,6 +4,7 @@ from typing import Annotated, Any
 import pandas as pd
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from loguru import logger
 
 from package_folder.api.schemas import (
     BatchPredictionResponse,
@@ -35,12 +36,11 @@ async def lifespan(app: FastAPI):
         app.state.model_error = f"{type(error).__name__}: {error}"
 
     if app.state.model is None:
-        print(
-            "⚠️  No model loaded: /predict will answer 503.\n"
-            "   → Train one (`make run_train`) or reload it through PUT /model."
+        logger.warning(
+            "No model loaded: /predict will answer 503 - train one (`make run_train`) or reload it through PUT /model"
         )
     else:
-        print("✅ Model loaded at startup.")
+        logger.info("Model loaded at startup.")
 
     yield
 
