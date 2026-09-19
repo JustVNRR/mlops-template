@@ -115,10 +115,11 @@ def clean_data(df: pd.DataFrame) -> pd.DataFrame:
     df = df.dropna(subset=required_columns)
 
     # 4. Outliers.
-    #    TODO: adapt these rules to your domain. Here: a trip with a zero or
-    #    negative distance, or a zero fare, is a data-entry artefact.
-    if "distance_km" in df.columns:
-        df = df[df["distance_km"] > 0]
+    #    One placeholder rule, and the only line of `clean_data` that assumes
+    #    anything about the data: a non-positive target is treated as a
+    #    data-entry artefact.
+    #    ⚠️ Replace it with rules that match YOUR data. As written, a
+    #    legitimately negative target would be dropped without warning.
     if TARGET_COLUMN in df.columns:
         df = df[df[TARGET_COLUMN] > 0]
 

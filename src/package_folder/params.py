@@ -144,15 +144,19 @@ if DATA_SOURCE not in VALID_DATA_SOURCES:
     )
 
 ##################  DATA SCHEMA  #################
-# Schema of the DEMONSTRATION dataset (see ml_logic/demo_data.generate_demo_data).
+# Schema of the DEMONSTRATION dataset (see ml_logic/demo_data.py). Reorienting
+# the template means rewriting this block and that module: no other file reads
+# a column name.
 #
-# ⚠️ REPLACE THIS with the columns of your own dataset. These constants drive
-#    the cleaning step, the preprocessor and the API contract, so changing them
-#    here is enough to reorient the whole pipeline.
-TARGET_COLUMN = "fare"
+# ⚠️ Replace these with the columns of YOUR dataset. They drive the cleaning
+#    step, the preprocessor and the API contract.
+TARGET_COLUMN = "target"
 
-NUMERIC_FEATURES = ["distance_km", "passengers", "hour"]
-CATEGORICAL_FEATURES = ["day_of_week"]
+# The features are named after the preprocessing branch each one feeds, not
+# after any business meaning — these two lists are what decide how the
+# ColumnTransformer treats each column.
+NUMERIC_FEATURES = ["numeric_feature_1", "numeric_feature_2", "numeric_feature_3"]
+CATEGORICAL_FEATURES = ["categorical_feature_1"]
 ALL_FEATURES = NUMERIC_FEATURES + CATEGORICAL_FEATURES
 
 COLUMN_NAMES_RAW = ALL_FEATURES + [TARGET_COLUMN]
@@ -160,11 +164,11 @@ COLUMN_NAMES_RAW = ALL_FEATURES + [TARGET_COLUMN]
 # Types enforced when loading: this cuts memory usage and makes a file whose
 # schema has changed fail immediately rather than silently downstream.
 DTYPES_RAW = {
-    "distance_km": "float32",
-    "passengers": "int8",
-    "hour": "int8",
-    "day_of_week": "category",
-    "fare": "float32",
+    "numeric_feature_1": "float32",
+    "numeric_feature_2": "int8",
+    "numeric_feature_3": "int8",
+    "categorical_feature_1": "category",
+    TARGET_COLUMN: "float32",
 }
 
 ##################  BUSINESS THRESHOLDS  #################

@@ -7,8 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from package_folder.api.schemas import (
     BatchPredictionResponse,
+    ModelFeatures,
     PredictionResponse,
-    TripFeatures,
 )
 from package_folder.ml_logic.registry import DEFAULT_ALIAS, load_model
 
@@ -109,7 +109,7 @@ def root() -> dict:
     """
     Root health-check endpoint.
     """
-    return {"greeting": "Hello"}
+    return {"status": "ok", "message": "API is running"}
 
 
 @app.get("/model")
@@ -181,11 +181,11 @@ def update_model(stage: str = DEFAULT_ALIAS) -> dict:
 # ==============================================================================
 @app.get("/predict", response_model=PredictionResponse)
 def predict(
-    params: Annotated[TripFeatures, Query()],
+    params: Annotated[ModelFeatures, Query()],
     model: Annotated[Any, Depends(get_model)],
 ) -> PredictionResponse:
     """
-    Predict for a single trip.
+    Predict for a single row.
 
     The parameters are validated by Pydantic BEFORE reaching the model: an
     incomplete or nonsensical request receives an explicit 422.
@@ -197,24 +197,24 @@ def predict(
     X_pred = pd.DataFrame([params.model_dump()])
     y_pred = model.predict(X_pred)
 
-    return PredictionResponse(fare=float(y_pred[0]))
+    return PredictionResponse(prediction=float(y_pred[0]))
 
 
 @app.post("/predict_batch", response_model=BatchPredictionResponse)
 def predict_batch(
-    inputs: list[TripFeatures],
+    inputs: list[ModelFeatures],
     model: Annotated[Any, Depends(get_model)],
 ) -> BatchPredictionResponse:
     """
-    Predict for a batch of trips in a single JSON request.
+    Predict for a batch of rows in a single JSON request.
 
-    The body is expected to be a LIST of TripFeatures objects:
-        [{"distance_km": 5.0, ...}, {"distance_km": 12.5, ...}]
+    The body is expected to be a LIST of ModelFeatures objects:
+        [{"numeric_feature_1": 5.0, ...}, {"numeric_feature_1": 12.5, ...}]
     """
     if not inputs:
-        raise HTTPException(status_code=422, detail="Empty batch: provide at least one trip.")
+        raise HTTPException(status_code=422, detail="Empty batch: provide at least one row.")
 
     X_pred = pd.DataFrame([item.model_dump() for item in inputs])
     y_pred = model.predict(X_pred)
 
-    return BatchPredictionResponse(fares=[float(value) for value in y_pred])
+    return BatchPredictionResponse(predictions=[float(value) for value in y_pred])

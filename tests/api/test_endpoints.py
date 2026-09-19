@@ -8,11 +8,16 @@ from package_folder.ml_logic.demo_data import generate_demo_data
 from package_folder.ml_logic.model import build_model
 from package_folder.params import ALL_FEATURES, TARGET_COLUMN
 
-# Valid payload, matching api/schemas.TripFeatures
-TEST_PARAMS = {"distance_km": 5.0, "passengers": 2, "hour": 14, "day_of_week": "monday"}
+# Valid payload, matching api/schemas.ModelFeatures
+TEST_PARAMS = {
+    "numeric_feature_1": 5.0,
+    "numeric_feature_2": 2,
+    "numeric_feature_3": 14,
+    "categorical_feature_1": "a",
+}
 
 # Field returned by /predict (see api/schemas.PredictionResponse)
-EXPECTED_PREDICT_KEY = "fare"
+EXPECTED_PREDICT_KEY = "prediction"
 
 
 @pytest.fixture
@@ -55,10 +60,10 @@ async def test_root_is_up(client):
     assert response.status_code == 200
 
 
-async def test_root_returns_greeting(client):
+async def test_root_reports_the_service_is_up(client):
     response = await client.get("/")
 
-    assert response.json() == {"greeting": "Hello"}
+    assert response.json() == {"status": "ok", "message": "API is running"}
 
 
 async def test_model_reports_being_loaded(client):
@@ -104,16 +109,16 @@ async def test_predict_val_is_float(client):
 async def test_predict_rejects_invalid_input(client):
     """
     Pydantic validation must reject a nonsensical input BEFORE the model.
-    Without it, a negative distance would produce a silently wrong prediction
+    Without it, an out-of-range value would produce a silently wrong prediction
     instead of an error.
     """
-    response = await client.get("/predict", params={**TEST_PARAMS, "distance_km": -1})
+    response = await client.get("/predict", params={**TEST_PARAMS, "numeric_feature_1": -1})
 
     assert response.status_code == 422
 
 
 async def test_predict_rejects_missing_field(client):
-    incomplete = {key: value for key, value in TEST_PARAMS.items() if key != "day_of_week"}
+    incomplete = {key: value for key, value in TEST_PARAMS.items() if key != "categorical_feature_1"}
 
     response = await client.get("/predict", params=incomplete)
 
@@ -126,12 +131,12 @@ async def test_predict_rejects_missing_field(client):
 
 
 async def test_predict_batch_returns_one_value_per_input(client):
-    payload = [TEST_PARAMS, {**TEST_PARAMS, "distance_km": 12.5}]
+    payload = [TEST_PARAMS, {**TEST_PARAMS, "numeric_feature_1": 12.5}]
 
     response = await client.post("/predict_batch", json=payload)
 
     assert response.status_code == 200
-    assert len(response.json()["fares"]) == len(payload)
+    assert len(response.json()["predictions"]) == len(payload)
 
 
 async def test_predict_batch_rejects_empty_payload(client):

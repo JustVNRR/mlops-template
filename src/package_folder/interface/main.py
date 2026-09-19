@@ -137,8 +137,18 @@ def pred(X_pred: pd.DataFrame | None = None) -> np.ndarray | None:
         # Sample payload: replace it with your own test cases.
         X_pred = pd.DataFrame(
             [
-                {"distance_km": 5.0, "passengers": 2, "hour": 14, "day_of_week": "monday"},
-                {"distance_km": 12.5, "passengers": 1, "hour": 23, "day_of_week": "saturday"},
+                {
+                    "numeric_feature_1": 5.0,
+                    "numeric_feature_2": 2,
+                    "numeric_feature_3": 14,
+                    "categorical_feature_1": "a",
+                },
+                {
+                    "numeric_feature_1": 12.5,
+                    "numeric_feature_2": 1,
+                    "numeric_feature_3": 23,
+                    "categorical_feature_1": "b",
+                },
             ]
         )
 
