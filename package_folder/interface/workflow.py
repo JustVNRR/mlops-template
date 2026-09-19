@@ -34,10 +34,10 @@ def re_train(min_date: str, max_date: str, split_ratio: float) -> float:
 @task
 def promote(alias: str = DEFAULT_ALIAS) -> None:
     """
-    Pointer l'alias MLflow sur la dernière version enregistrée.
+    Point the MLflow alias at the latest registered version.
 
-    Remplace l'ancienne transition « Staging → Production » (API "model
-    stages", obsolète depuis MLflow 2.x — voir registry.mlflow_set_alias).
+    Replaces the former "Staging → Production" transition (the "model stages"
+    API, obsolete since MLflow 2.x — see registry.mlflow_set_alias).
     """
     return mlflow_set_alias(alias=alias)
 
@@ -47,10 +47,10 @@ def notify(old_mae: float | None, new_mae: float) -> None:
     """
     Notify about the performance.
     """
-    # Sans webhook configuré, on prévient et on s'arrête là : une notification
-    # impossible à envoyer ne doit pas faire échouer un pipeline réussi.
+    # With no webhook configured, say so and stop there: a notification that
+    # cannot be sent must not fail an otherwise successful pipeline.
     if not NOTIFY_BASE_URL or not NOTIFY_CHANNEL:
-        print("ℹ️  Notifications désactivées (NOTIFY_BASE_URL / NOTIFY_CHANNEL vides dans .env).")
+        print("ℹ️  Notifications disabled (NOTIFY_BASE_URL / NOTIFY_CHANNEL empty in .env).")
         return
 
     url = f"{NOTIFY_BASE_URL}/{NOTIFY_CHANNEL}/messages"
@@ -80,30 +80,30 @@ def train_flow() -> dict:
     """
     if not EVALUATION_START_DATE:
         raise ValueError(
-            "❌ EVALUATION_START_DATE est vide : impossible de délimiter la période d'évaluation.\n"
-            "   → Renseigne-la dans ton .env au format YYYY-MM-DD (ex. 2024-01-01)."
+            "❌ EVALUATION_START_DATE is empty: cannot delimit the evaluation period.\n"
+            "   → Set it in your .env using the YYYY-MM-DD format (e.g. 2024-01-01)."
         )
 
     min_date = EVALUATION_START_DATE
     max_date = str(datetime.strptime(min_date, "%Y-%m-%d") + relativedelta(months=1)).split()[0]
-    print(f"📅 Période d'évaluation : {min_date} → {max_date}")
+    print(f"📅 Evaluation period: {min_date} → {max_date}")
 
-    # 1. Préparer les nouvelles données
+    # 1. Prepare the new data
     preprocess_new_data.submit(min_date=min_date, max_date=max_date).result()
 
-    # 2. Évaluer le modèle ACTUELLEMENT en production, AVANT de réentraîner.
-    #    L'ancienne version soumettait ces deux étapes EN PARALLÈLE : or
-    #    `train()` sauvegarde un nouveau modèle, que `evaluate()` pouvait
-    #    alors charger à la place de l'ancien. On comparait le nouveau modèle
-    #    à lui-même, et la promotion était décidée sur une comparaison fausse.
+    # 2. Evaluate the model CURRENTLY in production, BEFORE retraining.
+    #    The previous version submitted these two steps IN PARALLEL: yet
+    #    `train()` saves a new model, which `evaluate()` could then load instead
+    #    of the old one. We ended up comparing the new model against itself, and
+    #    the promotion decision rested on a bogus comparison.
     old_mae = evaluate_production_model.submit(min_date=min_date, max_date=max_date).result()
 
-    # 3. Réentraîner
+    # 3. Retrain
     new_mae = re_train.submit(min_date=min_date, max_date=max_date, split_ratio=0.2).result()
 
-    # 4. Promouvoir si le nouveau modèle fait mieux
+    # 4. Promote if the new model does better
     if old_mae is None:
-        print(f"ℹ️  Aucun modèle en production : le nouveau (MAE {new_mae:.3f}) devient la référence.")
+        print(f"ℹ️  No model in production: the new one (MAE {new_mae:.3f}) becomes the reference.")
         should_promote = True
     elif new_mae < old_mae:
         print(f"🚀 New model replacing old in production with MAE: {new_mae} the Old MAE was: {old_mae}")

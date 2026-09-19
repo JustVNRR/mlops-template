@@ -8,40 +8,39 @@ from package_folder.params import CATEGORICAL_FEATURES, NUMERIC_FEATURES
 
 def build_preprocessor() -> ColumnTransformer:
     """
-    Construire le pipeline de transformation des features (NON entraîné).
+    Build the feature transformation pipeline (NOT fitted).
 
-    ⚠️ Un préprocesseur doit être ENTRAÎNÉ sur les données d'entraînement
-    uniquement, puis réutilisé tel quel pour valider, évaluer et prédire.
-    C'est pourquoi `build_model()` l'intègre dans un Pipeline scikit-learn :
-    il est alors sérialisé avec le modèle, et `model.predict()` applique
-    automatiquement la transformation apprise.
+    ⚠️ A preprocessor must be FITTED on the training data only, then reused
+    as-is to validate, evaluate and predict. That is why `build_model()` wraps
+    it in a scikit-learn Pipeline: it then gets serialised along with the model,
+    and `model.predict()` applies the learned transformation automatically.
 
-    TODO: adapte les transformations à tes colonnes (imputation, features
-    temporelles, geohash…) — les listes de colonnes viennent de params.py.
+    TODO: adapt the transformations to your columns (imputation, time features,
+    geohash…) — the column lists come from params.py.
     """
     return ColumnTransformer(
         transformers=[
             ("numeric", StandardScaler(), NUMERIC_FEATURES),
-            # handle_unknown="ignore" : en production, une catégorie jamais vue
-            # à l'entraînement produit une ligne de zéros au lieu de lever une
-            # exception — une API ne doit pas tomber pour ça.
+            # handle_unknown="ignore": in production, a category never seen
+            # during training yields a row of zeros instead of raising — an API
+            # should not go down over that.
             ("categorical", OneHotEncoder(handle_unknown="ignore", sparse_output=False), CATEGORICAL_FEATURES),
         ],
-        remainder="drop",  # toute colonne hors schéma est ignorée
+        remainder="drop",  # any column outside the schema is ignored
     )
 
 
 def preprocess_features(X: pd.DataFrame) -> np.ndarray:
     """
-    Transformer des features brutes en matrice numérique.
+    Transform raw features into a numeric matrix.
 
-    ⚠️ FONCTION SANS ÉTAT : elle entraîne un préprocesseur NEUF sur `X`.
-    Pratique pour explorer un jeu de données ou tester une transformation,
-    mais à ne PAS utiliser pour servir un modèle : les moyennes, écarts-types
-    et catégories appris ne seraient pas ceux de l'entraînement, ce qui produit
-    des prédictions silencieusement fausses (aucune erreur levée).
+    ⚠️ STATELESS FUNCTION: it fits a brand new preprocessor on `X`. Handy to
+    explore a dataset or test a transformation, but do NOT use it to serve a
+    model: the means, standard deviations and categories it learns would not be
+    the ones from training, which yields silently wrong predictions (no error
+    is ever raised).
 
-    En production, appelle directement `model.predict(X)` : le modèle est un
-    Pipeline qui embarque déjà ce préprocesseur.
+    In production, call `model.predict(X)` directly: the model is a Pipeline
+    that already embeds this preprocessor.
     """
     return build_preprocessor().fit_transform(X)

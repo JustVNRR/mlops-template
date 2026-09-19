@@ -4,73 +4,69 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 # ==============================================================================
-# 📂 CHEMINS DU PROJET
+# 📂 PROJECT PATHS
 # ==============================================================================
-# 💡 Cette ligne trouve dynamiquement la racine du projet :
-# (__file__ = params.py -> .parent = le package -> .parent = la racine)
+# 💡 This resolves the project root dynamically:
+# (__file__ = params.py -> .parent = the package -> .parent = the root)
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 LOCAL_DATA_PATH = PROJECT_ROOT / "data"
 LOCAL_REGISTRY_PATH = PROJECT_ROOT / "models"
 
 # ==============================================================================
-# 🔐 CHARGEMENT DU .ENV
+# 🔐 LOADING THE .ENV FILE
 # ==============================================================================
-# Indispensable : sans cet appel, le package n'est importable que depuis un
-# shell ayant DÉJÀ exporté les variables (make, direnv). Un `pytest` lancé à la
-# main, ou un `python -c "import ..."`, échouait alors bien plus loin avec un
-# NameError/ValueError incompréhensible, sans lien visible avec le .env manquant.
+# This call is essential: without it, the package is only importable from a
+# shell that has ALREADY exported the variables (make, direnv). Running pytest
+# by hand, or `python -c "import ..."`, would fail much further down with an
+# inscrutable NameError/ValueError showing no trace of the missing .env file.
 #
-# `override=False` : une variable déjà présente dans l'environnement (make,
-# direnv, CI, Docker) reste prioritaire sur le contenu du fichier.
+# `override=False`: variables already present in the environment (make, direnv,
+# CI, Docker) take precedence over the file contents.
 load_dotenv(PROJECT_ROOT / ".env", override=False)
 
 
 # ==============================================================================
-# 🛠️ LECTURE ET VALIDATION DES VARIABLES
+# 🛠️ READING AND VALIDATING VARIABLES
 # ==============================================================================
 def _require(name: str) -> str:
-    """Lire une variable obligatoire, avec un message d'erreur actionnable."""
+    """Read a mandatory variable, with an actionable error message."""
     value = os.environ.get(name)
     if value is None or not value.strip():
         raise ValueError(
-            f"❌ {name} est absente ou vide.\n"
-            f"   → Crée ton fichier .env à partir du modèle fourni :\n"
+            f"❌ {name} is missing or empty.\n"
+            f"   → Create your .env file from the provided template:\n"
             f"     cp .env.sample .env"
         )
     return value.strip()
 
 
 def _optional(name: str) -> str | None:
-    """Lire une variable facultative (chaîne vide normalisée en None)."""
+    """Read an optional variable (empty strings normalised to None)."""
     value = os.environ.get(name)
     return value.strip() if value and value.strip() else None
 
 
 def _int(name: str, default: int | None = None) -> int | None:
-    """Lire un entier, en distinguant clairement « absent » de « mal saisi »."""
+    """Read an integer, clearly telling 'absent' apart from 'malformed'."""
     raw = os.environ.get(name)
     if raw is None or not raw.strip():
         return default
     try:
         return int(raw)
     except ValueError:
-        raise ValueError(
-            f"❌ {name} doit être un entier, reçu : {raw!r}\n   → Corrige {name} dans ton fichier .env."
-        ) from None
+        raise ValueError(f"❌ {name} must be an integer, got: {raw!r}\n   → Fix {name} in your .env file.") from None
 
 
 def _float(name: str, default: float | None = None) -> float | None:
-    """Lire un réel, avec le même traitement d'erreur que `_int`."""
+    """Read a number, with the same error handling as `_int`."""
     raw = os.environ.get(name)
     if raw is None or not raw.strip():
         return default
     try:
         return float(raw)
     except ValueError:
-        raise ValueError(
-            f"❌ {name} doit être un nombre, reçu : {raw!r}\n   → Corrige {name} dans ton fichier .env."
-        ) from None
+        raise ValueError(f"❌ {name} must be a number, got: {raw!r}\n   → Fix {name} in your .env file.") from None
 
 
 ##################  VARIABLES  ##################
@@ -79,12 +75,12 @@ def _float(name: str, default: float | None = None) -> float | None:
 DATA_SIZE = _optional("DATA_SIZE")
 CHUNK_SIZE = _int("CHUNK_SIZE", 100_000)
 MODEL_TARGET = (_optional("MODEL_TARGET") or "local").lower()
-# Source des données brutes :
-#   "toy"      → jeu synthétique généré en mémoire (aucun compte cloud requis)
-#   "bigquery" → requête sur BigQuery (nécessite GCP_PROJECT et BQ_DATASET)
+# Source of the raw data:
+#   "toy"      -> synthetic dataset generated in memory, no cloud account needed
+#   "bigquery" -> query against BigQuery, requires GCP_PROJECT and BQ_DATASET
 DATA_SOURCE = (_optional("DATA_SOURCE") or "toy").lower()
 
-# --- Infrastructure GCP ---
+# --- GCP infrastructure ---
 GCP_PROJECT = _optional("GCP_PROJECT")
 GCP_REGION = _optional("GCP_REGION")
 BQ_DATASET = _optional("BQ_DATASET")
@@ -115,24 +111,24 @@ VALID_DATA_SOURCES = ("toy", "bigquery")
 
 if MODEL_TARGET not in VALID_MODEL_TARGETS:
     raise NameError(
-        f"❌ MODEL_TARGET invalide : {MODEL_TARGET!r}\n"
-        f"   Valeurs acceptées : {', '.join(VALID_MODEL_TARGETS)}\n"
-        f"   → Corrige MODEL_TARGET dans ton fichier .env ('local' est un bon défaut)."
+        f"❌ Invalid MODEL_TARGET: {MODEL_TARGET!r}\n"
+        f"   Accepted values: {', '.join(VALID_MODEL_TARGETS)}\n"
+        f"   → Fix MODEL_TARGET in your .env file ('local' is a good default)."
     )
 
 if DATA_SOURCE not in VALID_DATA_SOURCES:
     raise NameError(
-        f"❌ DATA_SOURCE invalide : {DATA_SOURCE!r}\n"
-        f"   Valeurs acceptées : {', '.join(VALID_DATA_SOURCES)}\n"
-        f"   → Corrige DATA_SOURCE dans ton fichier .env ('toy' ne requiert aucun compte cloud)."
+        f"❌ Invalid DATA_SOURCE: {DATA_SOURCE!r}\n"
+        f"   Accepted values: {', '.join(VALID_DATA_SOURCES)}\n"
+        f"   → Fix DATA_SOURCE in your .env file ('toy' requires no cloud account)."
     )
 
 ##################  DATA SCHEMA  #################
-# Schéma du jeu de données de DÉMONSTRATION (voir ml_logic/data.generate_toy_data).
+# Schema of the DEMONSTRATION dataset (see ml_logic/data.generate_toy_data).
 #
-# ⚠️ À REMPLACER par les colonnes de ton propre dataset. Ces constantes sont
-#    utilisées par le nettoyage, le préprocesseur et les tests d'intégration :
-#    les changer ici suffit à réorienter tout le pipeline.
+# ⚠️ REPLACE THIS with the columns of your own dataset. These constants drive
+#    the cleaning step, the preprocessor and the API contract, so changing them
+#    here is enough to reorient the whole pipeline.
 TARGET_COLUMN = "fare"
 
 NUMERIC_FEATURES = ["distance_km", "passengers", "hour"]
@@ -141,8 +137,8 @@ ALL_FEATURES = NUMERIC_FEATURES + CATEGORICAL_FEATURES
 
 COLUMN_NAMES_RAW = ALL_FEATURES + [TARGET_COLUMN]
 
-# Types imposés au chargement : réduit l'empreinte mémoire et fait échouer
-# immédiatement un fichier dont le schéma a changé.
+# Types enforced when loading: this cuts memory usage and makes a file whose
+# schema has changed fail immediately rather than silently downstream.
 DTYPES_RAW = {
     "distance_km": "float32",
     "passengers": "int8",
@@ -151,8 +147,8 @@ DTYPES_RAW = {
     "fare": "float32",
 }
 
-##################  SEUILS MÉTIER  #################
-# MAE en dessous de laquelle un modèle est jugé acceptable par le workflow de
-# promotion (voir interface/workflow.py). Paramétrable par .env : un objectif
-# de qualité change souvent sans que le code, lui, doive changer.
+##################  BUSINESS THRESHOLDS  #################
+# MAE below which a model is considered acceptable by the promotion workflow
+# (see interface/workflow.py). Configurable through .env: a quality target
+# changes often, the code should not have to.
 MAE_THRESHOLD = _float("MAE_THRESHOLD", 3.0)

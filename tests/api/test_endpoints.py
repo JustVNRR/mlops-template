@@ -7,27 +7,27 @@ from package_folder.ml_logic.data import clean_data, generate_toy_data
 from package_folder.ml_logic.model import build_model
 from package_folder.params import ALL_FEATURES, TARGET_COLUMN
 
-# Charge utile valide, conforme à api/schemas.TripFeatures
+# Valid payload, matching api/schemas.TripFeatures
 TEST_PARAMS = {"distance_km": 5.0, "passengers": 2, "hour": 14, "day_of_week": "monday"}
 
-# Champ renvoyé par /predict (voir api/schemas.PredictionResponse)
+# Field returned by /predict (see api/schemas.PredictionResponse)
 EXPECTED_PREDICT_KEY = "fare"
 
 
 @pytest.fixture
 async def client(tmp_path, monkeypatch):
     """
-    Client HTTP branché sur l'app ASGI, avec un modèle entraîné à la volée.
+    HTTP client wired to the ASGI app, with a model trained on the fly.
 
-    Trois précautions, chacune corrigeant un piège réel :
+    Three precautions, each fixing a real trap:
 
-    1. Le registre est redirigé vers un dossier temporaire : le test ne dépend
-       pas d'un `make run_train` préalable et ne pollue pas le registre réel.
-    2. Le modèle est entraîné ici même (quelques centaines de lignes, quelques
-       millisecondes) : la suite est autoportante, donc exécutable en CI.
-    3. Le `lifespan` est exécuté EXPLICITEMENT. `ASGITransport` ne déclenche
-       pas les événements de démarrage : sans ce `async with`, `app.state.model`
-       resterait vide et toutes les prédictions répondraient 503.
+    1. The registry is redirected to a temporary directory: the test does not
+       depend on a prior `make run_train` and does not pollute the real registry.
+    2. The model is trained right here (a few hundred rows, a few milliseconds):
+       the suite is self-contained, hence runnable in CI.
+    3. The `lifespan` is run EXPLICITLY. `ASGITransport` does not trigger
+       startup events: without this `async with`, `app.state.model` would stay
+       empty and every prediction would answer 503.
     """
     monkeypatch.setattr(registry, "MODEL_TARGET", "local")
     monkeypatch.setattr(registry, "MODELS_DIR", tmp_path / "models")
@@ -44,7 +44,7 @@ async def client(tmp_path, monkeypatch):
 
 
 # ==============================================================================
-# SANTÉ
+# HEALTH
 # ==============================================================================
 
 
@@ -62,8 +62,8 @@ async def test_root_returns_greeting(client):
 
 async def test_model_reports_being_loaded(client):
     """
-    /model doit exposer l'état réel du modèle servi : c'est ce qui permet de
-    vérifier un déploiement sans provoquer de prédiction.
+    /model must expose the real state of the served model: that is what lets
+    you check a deployment without triggering a prediction.
     """
     response = await client.get("/model")
 
@@ -91,7 +91,7 @@ async def test_predict_is_dict(client):
 async def test_predict_has_expected_key(client):
     response = await client.get("/predict", params=TEST_PARAMS)
 
-    assert EXPECTED_PREDICT_KEY in response.json(), f"Clé '{EXPECTED_PREDICT_KEY}' absente de la réponse"
+    assert EXPECTED_PREDICT_KEY in response.json(), f"Key '{EXPECTED_PREDICT_KEY}' missing from the response"
 
 
 async def test_predict_val_is_float(client):
@@ -102,9 +102,9 @@ async def test_predict_val_is_float(client):
 
 async def test_predict_rejects_invalid_input(client):
     """
-    La validation Pydantic doit rejeter une entrée aberrante AVANT le modèle.
-    Sans elle, une distance négative produirait une prédiction silencieusement
-    fausse au lieu d'une erreur.
+    Pydantic validation must reject a nonsensical input BEFORE the model.
+    Without it, a negative distance would produce a silently wrong prediction
+    instead of an error.
     """
     response = await client.get("/predict", params={**TEST_PARAMS, "distance_km": -1})
 

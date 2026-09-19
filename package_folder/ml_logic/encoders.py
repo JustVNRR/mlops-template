@@ -1,22 +1,22 @@
 """
-Encodeurs personnalisés pour scikit-learn.
+Custom encoders for scikit-learn.
 
-Emplacement prévu pour tes transformations « maison » — encodage geohash,
-découpage temporel, agrégations métier… — sous forme de classes exposant
-l'interface `fit` / `transform` attendue par scikit-learn, afin de les
-brancher dans le ColumnTransformer de `preprocessor.build_preprocessor()` :
+Placeholder for your own transformations — geohash encoding, time slicing,
+business aggregations… — as classes exposing the `fit` / `transform` interface
+scikit-learn expects, so they can be plugged into the ColumnTransformer built
+by `preprocessor.build_preprocessor()`:
 
     from sklearn.compose import ColumnTransformer
-    from package_folder.ml_logic.encoders import MonEncodeur
+    from package_folder.ml_logic.encoders import MyEncoder
 
     ColumnTransformer([
         ("numeric", StandardScaler(), NUMERIC_FEATURES),
-        ("metier", MonEncodeur(), ["ma_colonne"]),
+        ("business", MyEncoder(), ["my_column"]),
     ])
 
-Ce fichier ne contenait que quatre imports (`math`, `numpy`, `pandas`,
-`pygeohash`) et AUCUNE ligne de code : les exemples prévus n'ont jamais été
-écrits, et le lint les signalait comme du code mort. Plutôt que de laisser
-des imports factices, il ne reste ici qu'un mode d'emploi — à toi d'y mettre
-un encodeur réellement utilisé.
+This file used to hold nothing but four imports (`math`, `numpy`, `pandas`,
+`pygeohash`) and no actual code: the intended examples were never written, and
+the linter kept flagging them as dead code. Rather than leave dummy imports
+behind, all that remains is this how-to — up to you to put a genuinely used
+encoder here.
 """

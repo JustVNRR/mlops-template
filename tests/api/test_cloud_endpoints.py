@@ -3,15 +3,15 @@ import os
 import pytest
 from httpx import AsyncClient
 
-# Ce module interroge l'API DÉPLOYÉE : il exige un service externe, donc exclu
-# de l'exécution par défaut (voir les markers dans pyproject.toml).
-# Lance-le explicitement avec `make test_api_cloud`.
+# This module queries the DEPLOYED API: it requires an external service, so it
+# is excluded from the default run (see the markers in pyproject.toml).
+# Start it explicitly with `make test_api_cloud`.
 pytestmark = pytest.mark.integration
 
-# Charge utile valide, conforme à api/schemas.TripFeatures
+# Valid payload, matching api/schemas.TripFeatures
 TEST_PARAMS = {"distance_km": 5.0, "passengers": 2, "hour": 14, "day_of_week": "monday"}
 
-# Champ renvoyé par /predict (voir api/schemas.PredictionResponse)
+# Field returned by /predict (see api/schemas.PredictionResponse)
 EXPECTED_PREDICT_KEY = "fare"
 
 SERVICE_URL = os.environ.get("SERVICE_URL")
@@ -21,15 +21,15 @@ SERVICE_URL = os.environ.get("SERVICE_URL")
 def service_url() -> str:
     if not SERVICE_URL:
         pytest.fail(
-            "❌ SERVICE_URL est vide : impossible de joindre l'API déployée.\n"
-            "   → Récupère l'URL avec `make cloudrun_url`, puis renseigne SERVICE_URL dans ton .env."
+            "❌ SERVICE_URL is empty: cannot reach the deployed API.\n"
+            "   → Get the URL with `make cloudrun_url`, then set SERVICE_URL in your .env."
         )
 
     return SERVICE_URL
 
 
 # ==============================================================================
-# SANTÉ
+# HEALTH
 # ==============================================================================
 
 
@@ -48,7 +48,7 @@ async def test_root_returns_greeting(service_url):
 
 
 # ==============================================================================
-# PRÉDICTION
+# PREDICTION
 # ==============================================================================
 
 
@@ -70,7 +70,7 @@ async def test_predict_has_key(service_url):
     async with AsyncClient(base_url=service_url, timeout=10.0) as client:
         response = await client.get("/predict", params=TEST_PARAMS)
 
-    assert EXPECTED_PREDICT_KEY in response.json(), f"Clé '{EXPECTED_PREDICT_KEY}' absente de la réponse"
+    assert EXPECTED_PREDICT_KEY in response.json(), f"Key '{EXPECTED_PREDICT_KEY}' missing from the response"
 
 
 async def test_cloud_api_predict_val_is_float(service_url):

@@ -5,15 +5,15 @@ import subprocess
 import pytest
 from httpx import AsyncClient
 
-# Ce module interroge une API réellement servie dans un conteneur : il exige un
-# service externe, donc exclu de l'exécution par défaut (voir les markers dans
-# pyproject.toml). Lance-le explicitement avec `make test_api_docker`.
+# This module queries an API actually served inside a container: it requires an
+# external service, so it is excluded from the default run (see the markers in
+# pyproject.toml). Start it explicitly with `make test_api_docker`.
 pytestmark = pytest.mark.integration
 
-# Charge utile valide, conforme à api/schemas.TripFeatures
+# Valid payload, matching api/schemas.TripFeatures
 TEST_PARAMS = {"distance_km": 5.0, "passengers": 2, "hour": 14, "day_of_week": "monday"}
 
-# Champ renvoyé par /predict (voir api/schemas.PredictionResponse)
+# Field returned by /predict (see api/schemas.PredictionResponse)
 EXPECTED_PREDICT_KEY = "fare"
 
 IMAGE_NAME = f"{os.environ.get('GAR_IMAGE')}:dev"
@@ -21,11 +21,11 @@ IMAGE_NAME = f"{os.environ.get('GAR_IMAGE')}:dev"
 
 def _running_container_port() -> str | None:
     """
-    Port publié par le conteneur issu de l'image locale, ou None.
+    Port published by the container built from the local image, or None.
 
-    Pas de `shell=True` : le nom de l'image vient de l'environnement, et
-    l'interpoler dans une commande shell ouvrirait une injection. On passe
-    donc une liste d'arguments, sans passer par un shell.
+    No `shell=True`: the image name comes from the environment, and
+    interpolating it into a shell command would open an injection. So this
+    passes an argument list, with no shell involved.
     """
     result = subprocess.run(
         ["docker", "ps", "--filter", f"ancestor={IMAGE_NAME}", "--format", "{{.Ports}}"],
@@ -41,27 +41,27 @@ def _running_container_port() -> str | None:
 @pytest.fixture(scope="module")
 def service_url() -> str:
     """
-    URL du conteneur en cours d'exécution.
+    URL of the running container.
 
-    La détection vit dans une fixture et non au niveau du module : l'ancienne
-    version lançait `docker ps` à l'IMPORT, donc dès la collecte, y compris
-    pour les tests d'un autre fichier.
+    The detection lives in a fixture rather than at module level: the previous
+    version ran `docker ps` AT IMPORT time, i.e. during collection, including
+    for tests from another file.
     """
     port = _running_container_port()
 
     if not port:
         pytest.fail(
-            f"❌ Aucun conteneur en cours d'exécution pour l'image '{IMAGE_NAME}'.\n"
-            f"   Vérifie que :\n"
-            f"     1. ton conteneur tourne (make docker_run_local)\n"
-            f"     2. l'image porte bien le nom $GAR_IMAGE:dev"
+            f"❌ No running container for image '{IMAGE_NAME}'.\n"
+            f"   Check that:\n"
+            f"     1. your container is running (make docker_run_local)\n"
+            f"     2. the image is named $GAR_IMAGE:dev"
         )
 
     return f"http://localhost:{port}"
 
 
 # ==============================================================================
-# SANTÉ
+# HEALTH
 # ==============================================================================
 
 
@@ -80,7 +80,7 @@ async def test_root_returns_greeting(service_url):
 
 
 # ==============================================================================
-# PRÉDICTION
+# PREDICTION
 # ==============================================================================
 
 
@@ -102,7 +102,7 @@ async def test_predict_has_key(service_url):
     async with AsyncClient(base_url=service_url, timeout=10.0) as client:
         response = await client.get("/predict", params=TEST_PARAMS)
 
-    assert EXPECTED_PREDICT_KEY in response.json(), f"Clé '{EXPECTED_PREDICT_KEY}' absente de la réponse"
+    assert EXPECTED_PREDICT_KEY in response.json(), f"Key '{EXPECTED_PREDICT_KEY}' missing from the response"
 
 
 async def test_docker_api_predict_val_is_float(service_url):
