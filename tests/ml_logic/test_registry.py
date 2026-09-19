@@ -11,10 +11,10 @@ from package_folder.ml_logic import registry
 @pytest.fixture
 def local_registry(tmp_path, monkeypatch):
     """
-    Redirige le registre local vers un dossier temporaire.
+    Point the local registry at a temporary directory.
 
-    Sans cette isolation, les tests écriraient dans le vrai models/ du projet
-    et pollueraient le registre de l'utilisateur.
+    Without this isolation, the tests would write into the project's real
+    models/ directory and pollute the user's registry.
     """
     monkeypatch.setattr(registry, "LOCAL_REGISTRY_PATH", tmp_path)
     monkeypatch.setattr(registry, "MODELS_DIR", tmp_path / "models")
@@ -25,7 +25,7 @@ def local_registry(tmp_path, monkeypatch):
 
 
 def _write_model(path, payload, mtime):
-    """Déposer un faux modèle en forçant sa date de modification."""
+    """Drop a fake model, forcing its modification time."""
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "wb") as file:
         pickle.dump(payload, file)
@@ -33,51 +33,51 @@ def _write_model(path, payload, mtime):
 
 
 # ==============================================================================
-# MODÈLES
+# MODELS
 # ==============================================================================
 
 
 def test_save_model_then_load_model_roundtrip(local_registry):
-    registry.save_model({"poids": [1, 2, 3]})
+    registry.save_model({"weights": [1, 2, 3]})
 
-    assert registry.load_model() == {"poids": [1, 2, 3]}
+    assert registry.load_model() == {"weights": [1, 2, 3]}
 
 
 def test_load_model_picks_most_recent_by_mtime(local_registry):
     """
-    Régression : l'ancien code faisait `sorted(paths)[-1]`, donc un tri
-    ALPHABÉTIQUE. Il sélectionnait 'zzz.pkl' même quand 'aaa.pkl' était
-    l'entraînement le plus récent — un bug silencieux, qui ne se voit que
-    le jour où les noms ne suivent plus la convention <timestamp>.pkl.
+    Regression test: the previous code used `sorted(paths)[-1]`, i.e.
+    ALPHABETICAL sorting. It picked 'zzz.pkl' even when 'aaa.pkl' was the most
+    recent training run — a silent bug, invisible until filenames stop
+    following the <timestamp>.pkl convention.
     """
-    _write_model(local_registry / "models" / "zzz.pkl", "ancien", mtime=1_000_000)
+    _write_model(local_registry / "models" / "zzz.pkl", "old", mtime=1_000_000)
     _write_model(local_registry / "models" / "aaa.pkl", "recent", mtime=2_000_000)
 
-    # Un tri alphabétique renverrait "ancien".
+    # Alphabetical sorting would return "old".
     assert registry.load_model() == "recent"
 
 
 def test_load_model_ignores_non_pickle_files(local_registry):
-    """Un fichier parasite dans models/ ne doit pas être chargé comme modèle."""
-    _write_model(local_registry / "models" / "vrai.pkl", "le bon", mtime=1_000_000)
-    (local_registry / "models" / "notes.txt").write_text("pas un modèle")
+    """A stray file in models/ must not be loaded as a model."""
+    _write_model(local_registry / "models" / "real.pkl", "the good one", mtime=1_000_000)
+    (local_registry / "models" / "notes.txt").write_text("not a model")
 
-    assert registry.load_model() == "le bon"
+    assert registry.load_model() == "the good one"
 
 
 def test_load_model_returns_none_on_empty_registry(local_registry):
-    """Un registre vide renvoie None au lieu de lever une exception."""
+    """An empty registry returns None instead of raising."""
     assert registry.load_model() is None
 
 
 def test_load_model_creates_nothing_when_directory_missing(local_registry):
-    """Aucun modèle et pas même de dossier : comportement identique."""
+    """No model and not even a directory: same behaviour."""
     assert not (local_registry / "models").exists()
     assert registry.load_model() is None
 
 
 # ==============================================================================
-# RÉSULTATS (params / metrics)
+# RESULTS (params / metrics)
 # ==============================================================================
 
 
@@ -93,9 +93,9 @@ def test_save_results_writes_readable_json(local_registry):
 
 def test_save_results_converts_numpy_types(local_registry):
     """
-    scikit-learn renvoie des np.float64, que json.dump refuse. La conversion
-    doit être transparente, sinon save_results explose sur des métriques
-    parfaitement valides.
+    scikit-learn returns np.float64 values, which json.dump rejects. The
+    conversion must be transparent, otherwise save_results blows up on
+    perfectly valid metrics.
     """
     registry.save_results(
         metrics={
@@ -122,7 +122,7 @@ def test_save_results_converts_numpy_types(local_registry):
 
 
 def test_save_results_accepts_partial_payloads(local_registry):
-    """params et metrics sont indépendamment facultatifs."""
+    """params and metrics are independently optional."""
     registry.save_results(params={"a": 1})
     assert list((local_registry / "metrics").glob("*.json")) == []
 
@@ -131,13 +131,13 @@ def test_save_results_accepts_partial_payloads(local_registry):
 
 
 # ==============================================================================
-# CIBLES NON IMPLÉMENTÉES
+# UNIMPLEMENTED TARGETS
 # ==============================================================================
 
 
 @pytest.mark.parametrize("target", ["gcs", "mlflow"])
 def test_save_model_raises_on_unimplemented_target(local_registry, monkeypatch, target):
-    """Une cible non implémentée doit échouer clairement, pas en silence."""
+    """An unimplemented target must fail loudly, not silently."""
     monkeypatch.setattr(registry, "MODEL_TARGET", target)
 
     with pytest.raises(NotImplementedError, match=target):
@@ -147,8 +147,8 @@ def test_save_model_raises_on_unimplemented_target(local_registry, monkeypatch, 
 @pytest.mark.parametrize("target", ["gcs", "mlflow"])
 def test_save_model_writes_nothing_on_unimplemented_target(local_registry, monkeypatch, target):
     """
-    La validation de la cible intervient AVANT l'écriture : sinon on laisserait
-    un modèle sur le disque tout en levant une exception (succès partiel).
+    The target is validated BEFORE writing: otherwise a model would be left on
+    disk while an exception is raised (a partial success).
     """
     monkeypatch.setattr(registry, "MODEL_TARGET", target)
 

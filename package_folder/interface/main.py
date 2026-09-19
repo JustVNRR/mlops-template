@@ -21,13 +21,12 @@ from package_folder.params import ALL_FEATURES, TARGET_COLUMN
 
 def preprocess(min_date: str | None = None, max_date: str | None = None) -> None:
     """
-    Charger les données brutes, les nettoyer, et les persister pour les étapes
-    suivantes du pipeline.
+    Load the raw data, clean it, and persist it for the following steps.
 
-    `min_date` / `max_date` ne servent qu'à la source BigQuery ; le jeu de
-    démonstration les ignore. Les rendre optionnels permet à `make run_preprocess`
-    de fonctionner sans argument, tout en gardant le workflow Prefect capable
-    de cibler une période précise.
+    `min_date` / `max_date` only matter for the BigQuery source; the
+    demonstration dataset ignores them. Keeping them optional lets
+    `make run_preprocess` run without arguments, while still allowing the
+    Prefect workflow to target a specific period.
     """
     print(Fore.MAGENTA + "\n⭐️ Use case: preprocess" + Style.RESET_ALL)
 
@@ -52,17 +51,17 @@ def train(
 
     Return the validation MAE as a float.
 
-    `**model_params` sont transmis à `build_model()` : alpha=… pour Ridge,
-    learning_rate=… pour un réseau Keras. Le pipeline n'a pas à changer quand
-    tu remplaces l'estimateur.
+    `**model_params` are forwarded to `build_model()`: alpha=… for Ridge,
+    learning_rate=… for a Keras network. The pipeline does not have to change
+    when you swap the estimator.
     """
     print(Fore.MAGENTA + "\n⭐️ Use case: train" + Style.RESET_ALL)
 
     data = load_processed_data()
 
-    # Split reproductible. Sur une série temporelle, remplace-le par un split
-    # CHRONOLOGIQUE (les lignes sont déjà ordonnées par date) — mélanger
-    # reviendrait à entraîner sur le futur pour prédire le passé :
+    # Reproducible split. On a time series, replace it with a CHRONOLOGICAL
+    # split (rows are already ordered by date) — shuffling would mean training
+    # on the future to predict the past:
     #   train_size = int(len(data) * (1 - split_ratio))
     #   train_df, val_df = data.iloc[:train_size], data.iloc[train_size:]
     train_df = data.sample(frac=1 - split_ratio, random_state=42)
@@ -100,18 +99,18 @@ def evaluate(
     """
     Evaluate the performance of the latest production model on processed data.
 
-    Return the MAE as a float, or None si aucun modèle n'est disponible.
+    Return the MAE as a float, or None if no model is available.
     """
     print(Fore.MAGENTA + "\n⭐️ Use case: evaluate" + Style.RESET_ALL)
 
     model = load_model(stage=stage)
     if model is None:
-        print("❌ No model to evaluate — entraîne-en un d'abord : make run_train")
+        print("❌ No model to evaluate — train one first: make run_train")
         return None
 
     data = load_processed_data()
     if data.empty:
-        print("❌ No data to evaluate on — lance d'abord : make run_preprocess")
+        print("❌ No data to evaluate on — run this first: make run_preprocess")
         return None
 
     X, y = data[ALL_FEATURES], data[TARGET_COLUMN]
@@ -130,12 +129,12 @@ def pred(X_pred: pd.DataFrame | None = None) -> np.ndarray | None:
     """
     Make a prediction using the latest trained model.
 
-    Return the array of predictions, or None si aucun modèle n'est disponible.
+    Return the array of predictions, or None if no model is available.
     """
     print(Fore.MAGENTA + "\n⭐️ Use case: predict" + Style.RESET_ALL)
 
     if X_pred is None:
-        # Exemple de charge utile : remplace-la par tes propres cas de test.
+        # Sample payload: replace it with your own test cases.
         X_pred = pd.DataFrame(
             [
                 {"distance_km": 5.0, "passengers": 2, "hour": 14, "day_of_week": "monday"},
@@ -145,12 +144,12 @@ def pred(X_pred: pd.DataFrame | None = None) -> np.ndarray | None:
 
     model = load_model()
     if model is None:
-        print("❌ No model to predict with — entraîne-en un d'abord : make run_train")
+        print("❌ No model to predict with — train one first: make run_train")
         return None
 
-    # Aucun appel à preprocess_features() ici : le modèle est un Pipeline qui
-    # embarque DÉJÀ le préprocesseur entraîné. Le réappliquer à la main
-    # utiliserait d'autres moyennes et d'autres catégories que l'entraînement.
+    # No call to preprocess_features() here: the model is a Pipeline that
+    # ALREADY embeds the fitted preprocessor. Applying it again by hand would
+    # use different means and different categories than training did.
     y_pred = model.predict(X_pred)
 
     print(f"✅ prediction done: {y_pred}\n")

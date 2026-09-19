@@ -14,37 +14,37 @@ from package_folder.ml_logic.registry import DEFAULT_ALIAS, load_model
 
 
 # ==============================================================================
-# 🚀 DÉMARRAGE
+# 🚀 STARTUP
 # ==============================================================================
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
-    Charger le modèle au démarrage — sans faire échouer ce démarrage.
+    Load the model at startup — without making that startup fail.
 
-    L'ancienne version appelait `load_model()` et faisait `assert model is not
-    None` AU NIVEAU DU MODULE. Conséquence : sans modèle entraîné, importer ce
-    fichier levait une exception. L'API ne démarrait donc pas, et surtout
-    AUCUN test ne pouvait s'exécuter — pas même celui de la route `/`.
+    The previous version called `load_model()` and ran `assert model is not
+    None` AT MODULE LEVEL. Consequence: with no trained model, importing this
+    file raised. So the API would not start, and above all NO test could run —
+    not even the one for the `/` route.
 
-    Ici, l'API démarre toujours : `/predict` répond 503 tant qu'aucun modèle
-    n'est chargé, avec la cause exacte de l'échec. `app.state.model_error`
-    conserve le message pour le diagnostic.
+    Here the API always starts: `/predict` answers 503 until a model is loaded,
+    with the exact cause of the failure. `app.state.model_error` keeps that
+    message around for diagnosis.
     """
     app.state.model = None
     app.state.model_error = None
 
     try:
         app.state.model = load_model()
-    except Exception as error:  # cible non implémentée, fichier corrompu, credentials…
+    except Exception as error:  # unimplemented target, corrupt file, credentials…
         app.state.model_error = f"{type(error).__name__}: {error}"
 
     if app.state.model is None:
         print(
-            "⚠️  Aucun modèle chargé : /predict répondra 503.\n"
-            "   → Entraîne-en un (`make run_train`) ou recharge-le via PUT /model."
+            "⚠️  No model loaded: /predict will answer 503.\n"
+            "   → Train one (`make run_train`) or reload it through PUT /model."
         )
     else:
-        print("✅ Modèle chargé au démarrage.")
+        print("✅ Model loaded at startup.")
 
     yield
 
@@ -53,18 +53,17 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="MLOps Template API",
-    description="API de prédiction du modèle entraîné par ce pipeline.",
+    description="Prediction API for the model trained by this pipeline.",
     version="1.0.0",
     lifespan=lifespan,
 )
 
-# ⚠️ Piège CORS classique : allow_origins=["*"] ET allow_credentials=True est une
-# combinaison INVALIDE. La spécification interdit d'envoyer des identifiants
-# vers une origine générique ; les navigateurs rejettent alors la réponse, sans
-# que le serveur ne signale quoi que ce soit.
-# Ici, l'API n'utilise pas de cookie d'authentification : on peut garder "*".
-# Si tu ajoutes de l'authentification par cookie, remplace "*" par la liste
-# explicite de tes origines ET passe allow_credentials à True.
+# ⚠️ Classic CORS trap: allow_origins=["*"] AND allow_credentials=True is an
+# INVALID combination. The spec forbids sending credentials to a wildcard
+# origin; browsers then reject the response, while the server reports nothing.
+# This API uses no authentication cookie, so "*" is fine.
+# If you add cookie-based authentication, replace "*" with the explicit list of
+# your origins AND set allow_credentials to True.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -75,27 +74,27 @@ app.add_middleware(
 
 
 # ==============================================================================
-# 🔌 DÉPENDANCES
+# 🔌 DEPENDENCIES
 # ==============================================================================
 def get_model(request: Request) -> Any:
     """
-    Récupérer le modèle chargé, ou refuser la requête proprement.
+    Fetch the loaded model, or reject the request cleanly.
 
-    On lit `app.state` à chaque appel (et non une variable globale) : c'est ce
-    qui permet à PUT /model de remplacer le modèle à chaud, sans redémarrage.
+    `app.state` is read on every call (rather than a module-level global): that
+    is what lets PUT /model swap the model at runtime, without a restart.
     """
     model = getattr(request.app.state, "model", None)
     if model is None:
-        detail = "Aucun modèle disponible. Entraîne-en un (`make run_train`) ou recharge-le via PUT /model."
+        detail = "No model available. Train one (`make run_train`) or reload it through PUT /model."
         if getattr(request.app.state, "model_error", None):
-            detail += f" Cause du dernier échec : {request.app.state.model_error}"
+            detail += f" Last failure cause: {request.app.state.model_error}"
         raise HTTPException(status_code=503, detail=detail)
 
     return model
 
 
 # ==============================================================================
-# 🩺 SANTÉ
+# 🩺 HEALTH
 # ==============================================================================
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
@@ -116,10 +115,10 @@ def root() -> dict:
 @app.get("/model")
 def model_info(request: Request) -> dict:
     """
-    État du modèle actuellement servi.
+    State of the model currently being served.
 
-    Utile en production pour vérifier qu'un déploiement a bien chargé un
-    modèle, sans avoir à provoquer une prédiction.
+    Useful in production to check that a deployment did load a model, without
+    having to trigger a prediction.
     """
     loaded = getattr(request.app.state, "model", None) is not None
 
@@ -130,7 +129,7 @@ def model_info(request: Request) -> dict:
 
 
 # ==============================================================================
-# 🔄 CYCLE DE VIE DU MODÈLE
+# 🔄 MODEL LIFECYCLE
 # ==============================================================================
 @app.put("/model")
 def update_model(stage: str = DEFAULT_ALIAS) -> dict:
@@ -141,11 +140,11 @@ def update_model(stage: str = DEFAULT_ALIAS) -> dict:
     requiring an API process restart or causing service downtime.
 
     Args:
-        stage (str, optional): ALIAS MLflow du modèle à charger. Les « stages »
-                               (Staging/Production) sont obsolètes depuis
-                               MLflow 2.x — voir registry.mlflow_set_alias.
-                               Ignoré quand MODEL_TARGET=local, où le modèle
-                               le plus récent est toujours chargé.
+        stage (str, optional): MLflow ALIAS of the model to load. The old
+                               "stages" (Staging/Production) are obsolete since
+                               MLflow 2.x — see registry.mlflow_set_alias.
+                               Ignored when MODEL_TARGET=local, where the most
+                               recent model is always loaded.
 
     Returns:
         dict: Confirmation payload detailing update status and active model stage.
@@ -178,7 +177,7 @@ def update_model(stage: str = DEFAULT_ALIAS) -> dict:
 
 
 # ==============================================================================
-# 🔮 PRÉDICTION
+# 🔮 PREDICTION
 # ==============================================================================
 @app.get("/predict", response_model=PredictionResponse)
 def predict(
@@ -186,14 +185,14 @@ def predict(
     model: Annotated[Any, Depends(get_model)],
 ) -> PredictionResponse:
     """
-    Prédire pour une course.
+    Predict for a single trip.
 
-    Les paramètres sont validés par Pydantic AVANT d'atteindre le modèle :
-    une requête incomplète ou aberrante reçoit un 422 explicite.
+    The parameters are validated by Pydantic BEFORE reaching the model: an
+    incomplete or nonsensical request receives an explicit 422.
 
-    ⚠️ Aucun appel à preprocess_features() ici : le modèle est un Pipeline qui
-    embarque déjà le préprocesseur entraîné. Le réappliquer à la main
-    utiliserait d'autres moyennes et d'autres catégories que l'entraînement.
+    ⚠️ No call to preprocess_features() here: the model is a Pipeline that
+    already embeds the fitted preprocessor. Reapplying it by hand would use
+    different means and different categories than training did.
     """
     X_pred = pd.DataFrame([params.model_dump()])
     y_pred = model.predict(X_pred)
@@ -207,13 +206,13 @@ def predict_batch(
     model: Annotated[Any, Depends(get_model)],
 ) -> BatchPredictionResponse:
     """
-    Prédire pour un lot de courses en une seule requête JSON.
+    Predict for a batch of trips in a single JSON request.
 
-    Le corps attendu est une LISTE d'objets TripFeatures :
+    The body is expected to be a LIST of TripFeatures objects:
         [{"distance_km": 5.0, ...}, {"distance_km": 12.5, ...}]
     """
     if not inputs:
-        raise HTTPException(status_code=422, detail="Le lot est vide : fournis au moins une course.")
+        raise HTTPException(status_code=422, detail="Empty batch: provide at least one trip.")
 
     X_pred = pd.DataFrame([item.model_dump() for item in inputs])
     y_pred = model.predict(X_pred)

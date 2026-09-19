@@ -16,19 +16,19 @@ from package_folder.params import (
     TARGET_COLUMN,
 )
 
-# Jeu de données nettoyé produit par `preprocess()` et consommé par `train()`.
-# C'est ce qui rend les étapes du pipeline indépendantes : `make run_train`
-# fonctionne même si `make run_preprocess` a tourné dans un autre shell.
+# Clean dataset produced by `preprocess()` and consumed by `train()`.
+# This is what makes the pipeline steps independent: `make run_train` works
+# even if `make run_preprocess` ran in another shell.
 PROCESSED_DATA_PATH = LOCAL_DATA_PATH / "processed" / "processed.csv"
 
 DAY_NAMES = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 
 
 # ==============================================================================
-# 🧪 JEU DE DONNÉES DE DÉMONSTRATION
+# 🧪 DEMONSTRATION DATASET
 # ==============================================================================
 def _n_samples_from_data_size() -> int:
-    """Traduire DATA_SIZE ('1k', '200k', 'all', …) en nombre de lignes."""
+    """Translate DATA_SIZE ('1k', '200k', 'all', …) into a row count."""
     if not DATA_SIZE:
         return 2_000
 
@@ -42,17 +42,17 @@ def _n_samples_from_data_size() -> int:
 
 def generate_toy_data(n_samples: int | None = None, seed: int = 42) -> pd.DataFrame:
     """
-    Générer un jeu de données synthétique de type « course de taxi ».
+    Generate a synthetic "taxi trip" dataset.
 
-    Objectif : rendre le template exécutable de bout en bout (`make run_all`)
-    sans compte GCP et sans fichier de données à versionner. La relation est
-    volontairement simple (linéaire + bruit gaussien) pour que le modèle de
-    référence atteigne une MAE stable et comparable d'une exécution à l'autre.
+    Purpose: make the template runnable end to end (`make run_all`) without a
+    GCP account and without a data file to version. The relationship is
+    deliberately simple (linear + gaussian noise) so that the reference model
+    reaches a stable MAE, comparable from one run to the next.
 
-    ⚠️ À remplacer par ta vraie source de données : voir `get_raw_data`.
+    ⚠️ Replace this with your real data source: see `get_raw_data`.
     """
     n_samples = n_samples if n_samples is not None else _n_samples_from_data_size()
-    rng = np.random.default_rng(seed)  # reproductible : mêmes données à chaque run
+    rng = np.random.default_rng(seed)  # reproducible: same data on every run
 
     distance_km = rng.uniform(0.5, 30.0, n_samples)
     passengers = rng.integers(1, 5, n_samples)
@@ -63,12 +63,12 @@ def generate_toy_data(n_samples: int | None = None, seed: int = 42) -> pd.DataFr
     is_weekend = np.isin(day_of_week, ["saturday", "sunday"])
 
     fare = (
-        3.0  # prise en charge
-        + 1.8 * distance_km  # tarif au kilomètre
-        + 0.4 * passengers  # supplément passager
-        + 2.5 * is_night  # majoration de nuit
-        + 1.5 * is_weekend  # majoration week-end
-        + rng.normal(0, 1.5, n_samples)  # bruit irréductible
+        3.0  # base fare
+        + 1.8 * distance_km  # per-kilometre rate
+        + 0.4 * passengers  # passenger surcharge
+        + 2.5 * is_night  # night surcharge
+        + 1.5 * is_weekend  # weekend surcharge
+        + rng.normal(0, 1.5, n_samples)  # irreducible noise
     )
 
     return pd.DataFrame(
@@ -83,14 +83,14 @@ def generate_toy_data(n_samples: int | None = None, seed: int = 42) -> pd.DataFr
 
 
 # ==============================================================================
-# 🔌 CHARGEMENT DES DONNÉES BRUTES
+# 🔌 LOADING RAW DATA
 # ==============================================================================
 def get_raw_data(min_date: str | None = None, max_date: str | None = None) -> pd.DataFrame:
     """
-    Charger les données brutes depuis la source configurée par DATA_SOURCE.
+    Load raw data from the source configured by DATA_SOURCE.
 
-    - "toy"      : jeu synthétique, aucun accès réseau (défaut)
-    - "bigquery" : requête sur la table brute du projet GCP
+    - "toy"      : synthetic dataset, no network access (default)
+    - "bigquery" : query against the project's raw table
     """
     if DATA_SOURCE == "toy":
         print(Fore.BLUE + "\nGenerating toy dataset..." + Style.RESET_ALL)
@@ -99,12 +99,12 @@ def get_raw_data(min_date: str | None = None, max_date: str | None = None) -> pd
     # --- DATA_SOURCE == "bigquery" ---
     if not GCP_PROJECT or not BQ_DATASET:
         raise ValueError(
-            "❌ DATA_SOURCE='bigquery' exige GCP_PROJECT et BQ_DATASET dans ton .env.\n"
-            "   → Renseigne-les, ou passe DATA_SOURCE=toy pour travailler hors ligne."
+            "❌ DATA_SOURCE='bigquery' requires GCP_PROJECT and BQ_DATASET in your .env.\n"
+            "   → Fill them in, or set DATA_SOURCE=toy to work offline."
         )
 
-    # TODO: adapte cette requête aux colonnes de TA table brute, puis renvoie
-    #       le résultat de get_data_with_cache() :
+    # TODO: adapt this query to the columns of YOUR raw table, then return the
+    #       result of get_data_with_cache():
     #
     #   query = f\"\"\"
     #       SELECT {', '.join(COLUMN_NAMES_RAW)}
@@ -114,9 +114,9 @@ def get_raw_data(min_date: str | None = None, max_date: str | None = None) -> pd
     #   cache_path = LOCAL_DATA_PATH / "raw" / f"raw_{min_date}_{max_date}.csv"
     #   return get_data_with_cache(GCP_PROJECT, query, cache_path)
     raise NotImplementedError(
-        "❌ DATA_SOURCE='bigquery' : la requête sur ta table brute reste à écrire.\n"
-        "   → Complète le TODO ci-dessus dans ml_logic/data.py,\n"
-        "     ou passe DATA_SOURCE=toy dans ton .env pour utiliser le jeu de démonstration."
+        "❌ DATA_SOURCE='bigquery': the query against your raw table still has to be written.\n"
+        "   → Complete the TODO above in ml_logic/data.py,\n"
+        "     or set DATA_SOURCE=toy in your .env to use the demonstration dataset."
     )
 
 
@@ -151,7 +151,7 @@ def get_data_with_cache(
 
 
 # ==============================================================================
-# 🧹 NETTOYAGE
+# 🧹 CLEANING
 # ==============================================================================
 def clean_data(df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -161,23 +161,23 @@ def clean_data(df: pd.DataFrame) -> pd.DataFrame:
     """
     initial_rows = len(df)
 
-    # 1. Types explicites : float32 au lieu de float64 divise l'empreinte
-    #    mémoire par deux sur les gros volumes, sans perte utile ici.
-    #    On ne caste QUE les colonnes présentes : un dataset utilisateur peut
-    #    ne pas suivre exactement ce schéma.
+    # 1. Explicit types: float32 instead of float64 halves the memory footprint
+    #    on large volumes, with no useful precision lost here.
+    #    Only PRESENT columns are cast: a user dataset may not follow this schema
+    #    exactly.
     dtypes = {column: dtype for column, dtype in DTYPES_RAW.items() if column in df.columns}
     df = df.astype(dtypes)
 
-    # 2. Doublons stricts
+    # 2. Strict duplicates
     df = df.drop_duplicates()
 
-    # 3. Lignes incomplètes — on ne teste que les colonnes du schéma
+    # 3. Incomplete rows — only the schema columns are checked
     required_columns = [c for c in ALL_FEATURES + [TARGET_COLUMN] if c in df.columns]
     df = df.dropna(subset=required_columns)
 
-    # 4. Valeurs aberrantes.
-    #    TODO: adapte ces règles à ton domaine. Ici : une course à distance
-    #    nulle ou négative, ou un tarif nul, sont des artefacts de saisie.
+    # 4. Outliers.
+    #    TODO: adapt these rules to your domain. Here: a trip with a zero or
+    #    negative distance, or a zero fare, is a data-entry artefact.
     if "distance_km" in df.columns:
         df = df[df["distance_km"] > 0]
     if TARGET_COLUMN in df.columns:
@@ -190,10 +190,10 @@ def clean_data(df: pd.DataFrame) -> pd.DataFrame:
 
 
 # ==============================================================================
-# 💾 PERSISTANCE DU JEU NETTOYÉ
+# 💾 PERSISTING THE CLEAN DATASET
 # ==============================================================================
 def save_processed_data(df: pd.DataFrame, path: Path | None = None) -> Path:
-    """Persister le jeu nettoyé pour les étapes suivantes du pipeline."""
+    """Persist the clean dataset for the following pipeline steps."""
     path = path or PROCESSED_DATA_PATH
     path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(path, index=False)
@@ -203,11 +203,11 @@ def save_processed_data(df: pd.DataFrame, path: Path | None = None) -> Path:
 
 
 def load_processed_data(path: Path | None = None) -> pd.DataFrame:
-    """Recharger le jeu nettoyé produit par `preprocess()`."""
+    """Reload the clean dataset produced by `preprocess()`."""
     path = path or PROCESSED_DATA_PATH
 
     if not path.is_file():
-        raise FileNotFoundError(f"❌ Aucune donnée prétraitée dans {path}\n   → Lance d'abord : make run_preprocess")
+        raise FileNotFoundError(f"❌ No processed data at {path}\n   → Run this first: make run_preprocess")
 
     return pd.read_csv(path)
 

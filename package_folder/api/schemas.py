@@ -3,21 +3,21 @@ from pydantic import BaseModel, ConfigDict, Field
 from package_folder.params import TARGET_COLUMN
 
 # ==============================================================================
-# 📥 ENTRÉES
+# 📥 INPUTS
 # ==============================================================================
-# ⚠️ Ce schéma doit refléter EXACTEMENT les features attendues par le modèle
-# (voir NUMERIC_FEATURES et CATEGORICAL_FEATURES dans params.py). C'est lui qui
-# protège l'API : une requête incomplète ou aberrante est rejetée en 422 avec
-# un message précis, AVANT d'atteindre le modèle.
+# ⚠️ This schema must mirror EXACTLY the features the model expects (see
+# NUMERIC_FEATURES and CATEGORICAL_FEATURES in params.py). It is what protects
+# the API: an incomplete or nonsensical request is rejected with a 422 and a
+# precise message, BEFORE it ever reaches the model.
 
 
 class TripFeatures(BaseModel):
-    """Caractéristiques d'une course, telles qu'attendues par le modèle."""
+    """Characteristics of a single trip, as expected by the model."""
 
-    distance_km: float = Field(..., gt=0, le=1_000, description="Distance de la course, en kilomètres")
-    passengers: int = Field(..., ge=1, le=8, description="Nombre de passagers")
-    hour: int = Field(..., ge=0, le=23, description="Heure de prise en charge (0-23)")
-    day_of_week: str = Field(..., description="Jour de la semaine, en anglais et en minuscules")
+    distance_km: float = Field(..., gt=0, le=1_000, description="Trip distance, in kilometres")
+    passengers: int = Field(..., ge=1, le=8, description="Number of passengers")
+    hour: int = Field(..., ge=0, le=23, description="Pickup hour (0-23)")
+    day_of_week: str = Field(..., description="Day of the week, lowercase English name")
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -30,17 +30,17 @@ class TripFeatures(BaseModel):
 
 
 # ==============================================================================
-# 📤 SORTIES
+# 📤 OUTPUTS
 # ==============================================================================
 class PredictionResponse(BaseModel):
-    """Prédiction pour une course."""
+    """Prediction for a single trip."""
 
-    # Le nom du champ vient de params.TARGET_COLUMN : renommer la cible dans le
-    # schéma de données met à jour le contrat d'API automatiquement.
-    fare: float = Field(..., description=f"Tarif estimé ({TARGET_COLUMN})")
+    # The field name comes from params.TARGET_COLUMN: renaming the target in the
+    # data schema updates the API contract automatically.
+    fare: float = Field(..., description=f"Predicted fare ({TARGET_COLUMN})")
 
 
 class BatchPredictionResponse(BaseModel):
-    """Prédictions pour un lot de courses, dans l'ordre de la requête."""
+    """Predictions for a batch of trips, in the order of the request."""
 
-    fares: list[float] = Field(..., description="Tarifs estimés, dans l'ordre des entrées")
+    fares: list[float] = Field(..., description="Predicted fares, in the order of the inputs")

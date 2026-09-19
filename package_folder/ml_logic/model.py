@@ -7,8 +7,8 @@ from sklearn.pipeline import Pipeline
 
 from package_folder.ml_logic.preprocessor import build_preprocessor
 
-# Alias générique : le template accepte n'importe quel estimateur exposant
-# .fit() / .predict() (scikit-learn, XGBoost, un modèle Keras…).
+# Generic alias: the template accepts any estimator exposing .fit() / .predict()
+# (scikit-learn, XGBoost, a Keras model…).
 Model = Any
 
 
@@ -17,14 +17,15 @@ def build_model(alpha: float = 1.0, **kwargs) -> Pipeline:
     Instantiate the model.
     (For neural networks, this includes initializing weights and compiling).
 
-    ⚠️ Le modèle renvoyé est un Pipeline scikit-learn COMPLET : préprocesseur
-    + estimateur. C'est ce qui garantit qu'à la prédiction, les features
-    subissent exactement la même transformation qu'à l'entraînement. Un modèle
-    sérialisé sans son préprocesseur prédit faux, sans jamais lever d'erreur.
+    ⚠️ The returned model is a COMPLETE scikit-learn Pipeline: preprocessor +
+    estimator. That is what guarantees that at prediction time the features
+    undergo exactly the same transformation as during training. A model
+    serialised without its preprocessor predicts nonsense, without ever raising
+    an error.
 
-    TODO: remplace Ridge par ton estimateur (RandomForestRegressor, XGBoost,
-    un réseau Keras…). Le reste du pipeline n'a pas à changer : `**kwargs`
-    transmet les hyperparamètres depuis `train()`.
+    TODO: replace Ridge with your own estimator (RandomForestRegressor,
+    XGBoost, a Keras network…). The rest of the pipeline does not have to
+    change: `**kwargs` forwards the hyperparameters from `train()`.
     """
     return Pipeline(
         steps=[
@@ -45,8 +46,8 @@ def train_model(
     """
     model.fit(X, y)
 
-    # scikit-learn n'expose pas d'historique d'entraînement (contrairement à
-    # Keras, dont `history.history` serait renvoyé ici).
+    # scikit-learn exposes no training history (unlike Keras, whose
+    # `history.history` would be returned here).
     return model, {}
 
 
@@ -62,8 +63,8 @@ def evaluate_model(
     """
     y_pred = model.predict(X)
 
-    # float() explicite : scikit-learn renvoie des np.float64, que json.dump
-    # refuse (voir registry._to_jsonable, qui les convertit de toute façon).
+    # Explicit float(): scikit-learn returns np.float64, which json.dump
+    # rejects (see registry._to_jsonable, which converts them anyway).
     return {
         "mae": float(mean_absolute_error(y, y_pred)),
         "rmse": float(root_mean_squared_error(y, y_pred)),

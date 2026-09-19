@@ -6,17 +6,16 @@ from package_folder.ml_logic.data import clean_data, generate_toy_data
 @pytest.fixture
 def toy_dataframe():
     """
-    Jeu de démonstration nettoyé, conforme au schéma déclaré dans params.py.
+    Clean demonstration dataset, matching the schema declared in params.py.
 
-    ⚠️ Les anciennes fixtures `fixture_mock_raw_data` et
-    `fixture_mock_cleaned_data` fabriquaient des colonnes inventées
-    (feature_1, feature_2, target) qui ne correspondaient à AUCUN schéma du
-    projet. Les tests qui s'en servaient validaient donc des données que le
-    pipeline n'aurait jamais rencontrées — un test vert qui ne prouvait rien.
+    ⚠️ The former `fixture_mock_raw_data` and `fixture_mock_cleaned_data`
+    fixtures built invented columns (feature_1, feature_2, target) that matched
+    NO schema in the project. Tests using them validated data the pipeline would
+    never actually encounter — a green test that proved nothing.
 
-    Pour des données brutes non nettoyées, appelle directement
-    `generate_toy_data()`. Pour tester un cas limite précis (valeur manquante,
-    doublon, catégorie inconnue), construis le DataFrame dans le test concerné :
-    c'est plus lisible qu'une fixture générique.
+    For raw, uncleaned data, call `generate_toy_data()` directly. To test a
+    specific edge case (missing value, duplicate, unknown category), build the
+    DataFrame inside the test concerned: that reads better than a generic
+    fixture.
     """
     return clean_data(generate_toy_data(100))
