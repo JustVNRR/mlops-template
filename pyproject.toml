@@ -55,5 +55,11 @@ ignore = [
   "E501",  # line length: handled by the formatter, not the linter
 ]
 
+# Without this, ruff files `from conftest import ...` among the installed
+# packages, which is what it looks like and is not what it is. The generated
+# projects declare their own package the same way.
+[tool.ruff.lint.isort]
+known-first-party = ["conftest"]
+
 [tool.ruff.format]
 quote-style = "double"
