@@ -64,6 +64,7 @@ then **deletes itself** along with its Makefile target.
 │       │   ├── main.py        #     pipeline: preprocess / train / evaluate / pred
 │       │   └── workflow.py    #     Prefect orchestration
 │       └── ml_logic/
+│           ├── demo_data.py   #     the synthetic dataset (the ONLY domain file)
 │           ├── data.py        #     loading, cleaning, persistence
 │           ├── preprocessor.py#    scikit-learn transformations
 │           ├── model.py       #     build / train / evaluate
@@ -123,6 +124,16 @@ Models and metrics land in `models/` (JSON for metrics, pickle for models). The
 **most recent model** is always the one being served, chosen by modification
 time.
 
+### The demonstration dataset
+
+`DATA_SOURCE=toy` (the default) builds a synthetic dataset in memory, so the
+whole pipeline runs with no account and no data file to version. Its target is a
+**documented linear combination** of the features plus gaussian noise: the
+coefficients are known, which is what lets the tests assert that the model
+recovers them, rather than merely returning a number.
+
+`ml_logic/demo_data.py` is the only file that knows about it.
+
 ### Orchestration (Prefect)
 
 `make run_workflow` runs the full cycle: data preparation, evaluation of the
@@ -143,8 +154,8 @@ make run_api
 | `GET /` | Service health |
 | `GET /model` | State of the loaded model, and the cause of failure if any |
 | `PUT /model` | Hot-swaps the model, with no service restart |
-| `GET /predict` | Prediction for one trip (query parameters) |
-| `POST /predict_batch` | Prediction for a list of trips |
+| `GET /predict` | Prediction for one row (query parameters) |
+| `POST /predict_batch` | Prediction for a list of rows |
 
 Interactive documentation: <http://127.0.0.1:8000/docs>.
 
@@ -172,7 +183,7 @@ make test_api_cloud
 ### Tests
 
 ```bash
-make test_all            # default run: 46 tests, no service required
+make test_all            # default run: 47 tests, no service required
 make test_integration    # the 18 tests needing GCP / Docker / a deployed API
 make lint                # ruff check
 make format              # ruff format
@@ -223,7 +234,7 @@ make cloudrun_url           # fetch the URL for SERVICE_URL
 | Job | Checks |
 |---|---|
 | **Lint** | `ruff check` + `ruff format --check` |
-| **Tests** | The 46 tests, with no secrets (the `.env` is recreated from `.env.sample`) |
+| **Tests** | The 47 tests, with no secrets (the `.env` is recreated from `.env.sample`) |
 | **Docker** | The image builds **and** the API actually answers inside the container |
 
 The Docker job is the only place where the `Dockerfile` is validated
@@ -272,21 +283,44 @@ disappears from the history and becomes impossible to revert as a whole
 
 ## 🎯 Adapting this template
 
-The template runs end to end, but is deliberately generic. To reorient it, in
-this order:
+The template runs end to end, but is deliberately generic. No column name says
+anything about a business: `numeric_feature_1` means "the first feature the
+preprocessor treats as a number".
+
+### What those names would be in a real project
+
+A project predicting a taxi fare from distance, passenger count, hour and day of
+the week would map them like this:
+
+| Here | In that project | Declared in |
+|---|---|---|
+| `numeric_feature_1` | `distance_km` — float, 0.5 to 30 | `params.NUMERIC_FEATURES` |
+| `numeric_feature_2` | `passengers` — int, 1 to 4 | `params.NUMERIC_FEATURES` |
+| `numeric_feature_3` | `hour` — int, 0 to 23 | `params.NUMERIC_FEATURES` |
+| `categorical_feature_1` | `day_of_week` — `monday`, `tuesday`, … | `params.CATEGORICAL_FEATURES` |
+| `target` | `fare` | `params.TARGET_COLUMN` |
+
+None of that belongs in the template — the table is here to show that adapting
+it is a **renaming plus a data source**, not a rewrite.
+
+### In this order
 
 1. **`params.py`** — declare your columns (`NUMERIC_FEATURES`,
    `CATEGORICAL_FEATURES`, `TARGET_COLUMN`), your types (`DTYPES_RAW`) and your
-   business thresholds. The rest of the code refers to them.
-2. **`ml_logic/demo_data.py`** — replace `generate_demo_data()` with your real
-   loading logic (the TODO in `get_raw_data()` holds the BigQuery query to
-   complete), and adapt `clean_data()` to your cleaning rules.
-3. **`ml_logic/preprocessor.py`** — adapt the transformations to your columns.
-4. **`ml_logic/model.py`** — replace `Ridge` with your own estimator. The rest
+   business thresholds. Every other file reads them from here.
+2. **`ml_logic/demo_data.py`** — replace `generate_demo_data()` with your own, or
+   delete the module once real data flows. Together with the schema block above,
+   it is one of the only two places that know a domain.
+3. **`ml_logic/data.py`** — complete the TODO in `get_raw_data()` (the BigQuery
+   query), and replace the placeholder outlier rule of `clean_data()` with rules
+   that match your data.
+4. **`ml_logic/preprocessor.py`** — adapt the transformations to your columns.
+5. **`ml_logic/model.py`** — replace `Ridge` with your own estimator. The rest
    of the pipeline does not change: `train(**model_params)` forwards the
    hyperparameters.
-5. **`api/schemas.py`** — align the input contract with your features.
-6. **`ml_logic/registry.py`** — implement MLflow or GCS loading if you want to
+6. **`api/schemas.py`** — align the input contract with your features. This file
+   restates the schema by hand, so keep the two in step.
+7. **`ml_logic/registry.py`** — implement MLflow or GCS loading if you want to
    move beyond the local registry.
-7. **Swagger documentation** — the API title and description live in
+8. **Swagger documentation** — the API title and description live in
    `api/fast.py`.
