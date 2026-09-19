@@ -54,20 +54,21 @@ then **deletes itself** along with its Makefile target.
 
 ```
 .
-├── package_folder/            # the Python package (renamed by init_project)
-│   ├── params.py              #   configuration: schema, thresholds, env vars
-│   ├── api/
-│   │   ├── fast.py            #   FastAPI application (lifespan, routes)
-│   │   └── schemas.py         #   Pydantic input/output contract
-│   ├── interface/
-│   │   ├── main.py            #   pipeline: preprocess / train / evaluate / pred
-│   │   └── workflow.py        #   Prefect orchestration
-│   └── ml_logic/
-│       ├── data.py            #   loading, cleaning, persistence
-│       ├── preprocessor.py    #   scikit-learn transformations
-│       ├── model.py           #   build / train / evaluate
-│       ├── registry.py        #   model lifecycle (local, MLflow)
-│       └── encoders.py        #   a place for your custom encoders
+├── src/                       # src layout: only importable code lives here
+│   └── package_folder/        #   the Python package (renamed by init_project)
+│       ├── params.py          #     configuration: schema, thresholds, env vars
+│       ├── api/
+│       │   ├── fast.py        #     FastAPI application (lifespan, routes)
+│       │   └── schemas.py     #     Pydantic input/output contract
+│       ├── interface/
+│       │   ├── main.py        #     pipeline: preprocess / train / evaluate / pred
+│       │   └── workflow.py    #     Prefect orchestration
+│       └── ml_logic/
+│           ├── data.py        #     loading, cleaning, persistence
+│           ├── preprocessor.py#    scikit-learn transformations
+│           ├── model.py       #     build / train / evaluate
+│           ├── registry.py    #     model lifecycle (local, MLflow)
+│           └── encoders.py    #     a place for your custom encoders
 ├── make/                      # Makefile targets, grouped by domain
 ├── tests/
 │   ├── api/                   #   the 3 tiers (local, docker, cloud)

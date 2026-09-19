@@ -48,10 +48,10 @@ if [ -f .dockerignore ]; then
     fi
 fi
 
-# 4. Rename the main folder if it still exists under the old name
-if [ -d "$OLD_NAME" ]; then
-    mv "$OLD_NAME" "$NEW_NAME"
-    echo "📁 Folder renamed to $NEW_NAME/"
+# 4. Rename the package folder, which lives under src/ (src layout)
+if [ -d "src/$OLD_NAME" ]; then
+    mv "src/$OLD_NAME" "src/$NEW_NAME"
+    echo "📁 Folder renamed to src/$NEW_NAME/"
 fi
 
 # 5. Regenerate uv.lock: it embeds the package name, so it goes stale the

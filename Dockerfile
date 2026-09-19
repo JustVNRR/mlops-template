@@ -28,7 +28,8 @@ RUN uv sync --frozen --no-dev --no-install-project
 
 # 4. Copy the source code, then install the project itself
 #    (--no-dev: production image, no pytest/ruff/ipykernel)
-COPY package_folder package_folder
+#    src layout: the package lives under src/, mirroring the repository.
+COPY src/package_folder src/package_folder
 RUN uv sync --frozen --no-dev
 
 # 5. Run as a NON-ROOT user.

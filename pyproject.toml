@@ -61,10 +61,15 @@ dev = [
 # ==============================================================================
 # 📦 PACKAGING
 # ==============================================================================
-# Explicit declaration: the directory name changes through `make init_project`,
-# and hatchling needs to know where to find the package.
+# src layout: the importable package lives under src/, while tests/, notebooks/
+# and the configuration stay at the root. This separation is deliberate — the
+# package cannot be imported by accident from the working directory, so tests
+# exercise the INSTALLED package, the same one production uses.
+#
+# The directory name changes through `make init_project`, hence this explicit
+# declaration rather than an automatic discovery.
 [tool.hatch.build.targets.wheel]
-packages = ["package_folder"]
+packages = ["src/package_folder"]
 
 # ==============================================================================
 # 🔍 RUFF — lint + format
