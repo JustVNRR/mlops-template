@@ -144,7 +144,7 @@ if DATA_SOURCE not in VALID_DATA_SOURCES:
     )
 
 ##################  DATA SCHEMA  #################
-# Schema of the DEMONSTRATION dataset (see ml_logic/data.generate_toy_data).
+# Schema of the DEMONSTRATION dataset (see ml_logic/demo_data.generate_demo_data).
 #
 # ⚠️ REPLACE THIS with the columns of your own dataset. These constants drive
 #    the cleaning step, the preprocessor and the API contract, so changing them

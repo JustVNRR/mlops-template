@@ -4,10 +4,10 @@ import pytest
 
 from package_folder.ml_logic.data import (
     clean_data,
-    generate_toy_data,
     load_processed_data,
     save_processed_data,
 )
+from package_folder.ml_logic.demo_data import generate_demo_data
 from package_folder.params import ALL_FEATURES, DTYPES_RAW, TARGET_COLUMN
 
 # ==============================================================================
@@ -15,32 +15,32 @@ from package_folder.params import ALL_FEATURES, DTYPES_RAW, TARGET_COLUMN
 # ==============================================================================
 
 
-def test_generate_toy_data_has_expected_schema():
-    df = generate_toy_data(n_samples=100)
+def test_generate_demo_data_has_expected_schema():
+    df = generate_demo_data(n_samples=100)
 
     assert len(df) == 100
     assert list(df.columns) == ALL_FEATURES + [TARGET_COLUMN]
 
 
-def test_generate_toy_data_is_reproducible():
+def test_generate_demo_data_is_reproducible():
     """
     Same seed -> same data. Without this, no metric is comparable from one run
     to the next, and the CI cannot assert anything stable.
     """
-    pd.testing.assert_frame_equal(generate_toy_data(50, seed=1), generate_toy_data(50, seed=1))
+    pd.testing.assert_frame_equal(generate_demo_data(50, seed=1), generate_demo_data(50, seed=1))
 
 
-def test_generate_toy_data_varies_across_seeds():
-    assert not generate_toy_data(50, seed=1).equals(generate_toy_data(50, seed=2))
+def test_generate_demo_data_varies_across_seeds():
+    assert not generate_demo_data(50, seed=1).equals(generate_demo_data(50, seed=2))
 
 
-def test_generate_toy_data_has_no_missing_values():
-    assert not generate_toy_data(200).isna().any().any()
+def test_generate_demo_data_has_no_missing_values():
+    assert not generate_demo_data(200).isna().any().any()
 
 
-def test_generate_toy_data_has_variability():
+def test_generate_demo_data_has_variability():
     """A constant dataset would make any metric meaningless."""
-    df = generate_toy_data(200)
+    df = generate_demo_data(200)
 
     assert df[TARGET_COLUMN].std() > 0
     assert df["day_of_week"].nunique() > 1
@@ -53,7 +53,7 @@ def test_generate_toy_data_has_variability():
 
 
 def test_clean_data_removes_duplicates_and_missing_values():
-    df = generate_toy_data(50)
+    df = generate_demo_data(50)
 
     # 5 EXACT duplicates (rows 50-54 = rows 0-4)…
     dirty = pd.concat([df, df.iloc[:5]], ignore_index=True)
@@ -71,7 +71,7 @@ def test_clean_data_removes_duplicates_and_missing_values():
 
 def test_clean_data_applies_declared_dtypes():
     """The types from params.py cut memory usage and expose a broken schema."""
-    cleaned = clean_data(generate_toy_data(50))
+    cleaned = clean_data(generate_demo_data(50))
 
     for column, expected_dtype in DTYPES_RAW.items():
         assert str(cleaned[column].dtype) == expected_dtype, column
@@ -79,7 +79,7 @@ def test_clean_data_applies_declared_dtypes():
 
 def test_clean_data_drops_domain_outliers():
     """Zero or negative distance, zero fare: data-entry artefacts."""
-    df = generate_toy_data(50)
+    df = generate_demo_data(50)
     df.loc[0, "distance_km"] = 0
     df.loc[1, "distance_km"] = -5
     df.loc[2, TARGET_COLUMN] = 0
@@ -89,14 +89,14 @@ def test_clean_data_drops_domain_outliers():
 
 def test_clean_data_resets_index():
     """A gappy index would break row-by-row selections downstream."""
-    cleaned = clean_data(generate_toy_data(30))
+    cleaned = clean_data(generate_demo_data(30))
 
     assert list(cleaned.index) == list(range(len(cleaned)))
 
 
 def test_clean_data_is_idempotent():
     """Cleaning an already clean dataset must remove nothing."""
-    once = clean_data(generate_toy_data(100))
+    once = clean_data(generate_demo_data(100))
 
     assert len(clean_data(once)) == len(once)
 
@@ -107,7 +107,7 @@ def test_clean_data_is_idempotent():
 
 
 def test_save_and_load_processed_data_roundtrip(tmp_path):
-    df = generate_toy_data(20)
+    df = generate_demo_data(20)
     path = tmp_path / "processed.csv"
 
     save_processed_data(df, path=path)
@@ -122,7 +122,7 @@ def test_save_processed_data_creates_missing_directories(tmp_path):
     """`make run_preprocess` must work on a fresh clone, with no mkdir."""
     path = tmp_path / "deep" / "processed.csv"
 
-    save_processed_data(generate_toy_data(5), path=path)
+    save_processed_data(generate_demo_data(5), path=path)
 
     assert path.is_file()
 

@@ -3,7 +3,8 @@ from httpx import ASGITransport, AsyncClient
 
 from package_folder.api.fast import app
 from package_folder.ml_logic import registry
-from package_folder.ml_logic.data import clean_data, generate_toy_data
+from package_folder.ml_logic.data import clean_data
+from package_folder.ml_logic.demo_data import generate_demo_data
 from package_folder.ml_logic.model import build_model
 from package_folder.params import ALL_FEATURES, TARGET_COLUMN
 
@@ -32,7 +33,7 @@ async def client(tmp_path, monkeypatch):
     monkeypatch.setattr(registry, "MODEL_TARGET", "local")
     monkeypatch.setattr(registry, "MODELS_DIR", tmp_path / "models")
 
-    data = clean_data(generate_toy_data(200))
+    data = clean_data(generate_demo_data(200))
     model = build_model()
     model.fit(data[ALL_FEATURES], data[TARGET_COLUMN])
     registry.save_model(model)
