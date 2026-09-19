@@ -1,0 +1,65 @@
+name: Docker
+
+# Kept apart from ci.yml so that a project without the `docker` building block
+# can drop the whole file, without ci.yml having to be rendered as a template —
+# GitHub expressions and Jinja share the same `{{ }}` delimiters.
+on:
+  push:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docker:
+    name: Docker build & smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      # The Dockerfile installs with `uv sync --frozen`, which needs a lock.
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      # Building the image is the ONLY way to validate the Dockerfile
+      # automatically — it is also the container tier of the method described
+      # in the README.
+      - name: Build the production image
+        run: |
+          docker build \
+            --build-arg DOCKER_BASE_IMAGE=python:3.12-slim \
+            --tag api:ci \
+            .
+
+      # Start the container and query the API: this checks that the image does
+      # not merely build, but that the API actually answers. No model ships
+      # inside the image, so /predict will answer 503 — which is precisely the
+      # behaviour we want to guarantee: the API starts even with no model,
+      # instead of crashing on import.
+      - name: Start the container and check the API answers
+        run: |
+          docker run -d --name api-ci -e PORT=8000 -p 8000:8000 api:ci
+
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://localhost:8000/ > /dev/null 2>&1; then
+              echo "✅ The API answered after ${attempt} attempt(s)."
+              curl -fsS http://localhost:8000/
+              exit 0
+            fi
+            sleep 2
+          done
+
+          echo "❌ The API never answered. Container logs:"
+          docker logs api-ci
+          exit 1
+
+      - name: Container logs
+        if: always()
+        run: docker logs api-ci 2>/dev/null || true

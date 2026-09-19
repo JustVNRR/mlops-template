@@ -14,7 +14,9 @@
 # ==============================================================================
 .env
 .env.*
-!.env.sample
+# The wildcard is required: Copier filters the template through .gitignore, and
+# the shipped file is named `.env.sample.jinja` in the sources.
+!.env.sample*
 *.pem
 *.key
 # *.json is ignored on purpose: GCP service account keys have unpredictable

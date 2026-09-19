@@ -20,10 +20,10 @@ test_infrastructure: ## Run sanity checks for GCP setup and credentials
 test_api_local: ## Run API tests locally (FastAPI in memory)
 	uv run pytest tests/api/test_endpoints.py
 
-test_api_docker: ## Run API tests on the local Docker container
+{% if 'docker' in modules %}test_api_docker: ## Run API tests on the local Docker container
 	uv run pytest tests/api/test_docker_endpoints.py
 
-test_api_cloud: ## Run API tests on the deployed Cloud Run endpoint
+{% endif %}test_api_cloud: ## Run API tests on the deployed Cloud Run endpoint
 	uv run pytest tests/api/test_cloud_endpoints.py
 
 test_integration: ## Run the tests that need real GCP credentials (excluded by default)

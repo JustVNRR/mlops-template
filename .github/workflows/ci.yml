@@ -159,3 +159,57 @@ jobs:
       - name: Container logs
         if: always()
         run: docker logs api-ci 2>/dev/null || true
+
+  minimal:
+    name: Minimal project (no optional module)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      # Whatever the `modules` question removes, the remaining project must
+      # still install, lint, test and run. This job is what keeps the guards
+      # honest as building blocks are added.
+      - name: Generate a project without any optional module
+        run: |
+          uvx copier copy --defaults \
+            -d "project_name=Minimal Project" \
+            -d "package_name=minimal_project" \
+            -d "author_name=$AUTHOR_NAME" \
+            -d "author_email=$AUTHOR_EMAIL" \
+            -d "license=$LICENSE" \
+            -d "modules=[]" \
+            . "$RUNNER_TEMP/minimal"
+
+      - name: Check the optional files are gone
+        working-directory: ${{ runner.temp }}/minimal
+        run: |
+          for f in Dockerfile .dockerignore docker-compose.yml make/docker.mk \
+                   tests/api/test_docker_endpoints.py .github/workflows/docker.yml; do
+            if [ -e "$f" ]; then echo "❌ $f should have been excluded"; exit 1; fi
+          done
+          if grep -rn -i "docker" README.md .github/ .env.sample ; then
+            echo "❌ the README, a workflow or .env.sample still mentions Docker"
+            exit 1
+          fi
+          echo "✅ nothing from the docker building block survived"
+
+      - name: Install dependencies
+        working-directory: ${{ runner.temp }}/minimal
+        run: uv sync
+
+      - name: Create .env from the template
+        working-directory: ${{ runner.temp }}/minimal
+        run: cp .env.sample .env
+
+      - name: Lint, test and run the pipeline
+        working-directory: ${{ runner.temp }}/minimal
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+          uv run pytest
+          make run_all
