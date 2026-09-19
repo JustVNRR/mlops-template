@@ -14,6 +14,7 @@ from package_folder.params import ALL_FEATURES, DTYPES_RAW, TARGET_COLUMN
 # JEU DE DÉMONSTRATION
 # ==============================================================================
 
+
 def test_generate_toy_data_has_expected_schema():
     df = generate_toy_data(n_samples=100)
 
@@ -49,6 +50,7 @@ def test_generate_toy_data_has_variability():
 # ==============================================================================
 # NETTOYAGE
 # ==============================================================================
+
 
 def test_clean_data_removes_duplicates_and_missing_values():
     df = generate_toy_data(50)
@@ -101,6 +103,7 @@ def test_clean_data_is_idempotent():
 # ==============================================================================
 # PERSISTANCE ENTRE ÉTAPES
 # ==============================================================================
+
 
 def test_save_and_load_processed_data_roundtrip(tmp_path):
     df = generate_toy_data(20)

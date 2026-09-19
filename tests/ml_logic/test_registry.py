@@ -36,6 +36,7 @@ def _write_model(path, payload, mtime):
 # MODÈLES
 # ==============================================================================
 
+
 def test_save_model_then_load_model_roundtrip(local_registry):
     registry.save_model({"poids": [1, 2, 3]})
 
@@ -78,6 +79,7 @@ def test_load_model_creates_nothing_when_directory_missing(local_registry):
 # ==============================================================================
 # RÉSULTATS (params / metrics)
 # ==============================================================================
+
 
 def test_save_results_writes_readable_json(local_registry):
     registry.save_results(params={"learning_rate": 0.001}, metrics={"mae": 2.5})
@@ -131,6 +133,7 @@ def test_save_results_accepts_partial_payloads(local_registry):
 # ==============================================================================
 # CIBLES NON IMPLÉMENTÉES
 # ==============================================================================
+
 
 @pytest.mark.parametrize("target", ["gcs", "mlflow"])
 def test_save_model_raises_on_unimplemented_target(local_registry, monkeypatch, target):
