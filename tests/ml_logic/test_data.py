@@ -8,7 +8,7 @@ from package_folder.ml_logic.data import (
     save_processed_data,
 )
 from package_folder.ml_logic.demo_data import generate_demo_data
-from package_folder.params import ALL_FEATURES, DTYPES_RAW, TARGET_COLUMN
+from package_folder.params import ALL_FEATURES, CATEGORICAL_FEATURES, DTYPES_RAW, TARGET_COLUMN
 
 # ==============================================================================
 # DEMONSTRATION DATASET
@@ -43,7 +43,7 @@ def test_generate_demo_data_has_variability():
     df = generate_demo_data(200)
 
     assert df[TARGET_COLUMN].std() > 0
-    assert df["day_of_week"].nunique() > 1
+    assert df[CATEGORICAL_FEATURES[0]].nunique() > 1
     assert df[TARGET_COLUMN].min() > 0
 
 
@@ -77,14 +77,16 @@ def test_clean_data_applies_declared_dtypes():
         assert str(cleaned[column].dtype) == expected_dtype, column
 
 
-def test_clean_data_drops_domain_outliers():
-    """Zero or negative distance, zero fare: data-entry artefacts."""
+def test_clean_data_drops_non_positive_targets():
+    """
+    The placeholder outlier rule of `clean_data`: a non-positive target is
+    treated as a data-entry artefact.
+    """
     df = generate_demo_data(50)
-    df.loc[0, "distance_km"] = 0
-    df.loc[1, "distance_km"] = -5
-    df.loc[2, TARGET_COLUMN] = 0
+    df.loc[0, TARGET_COLUMN] = 0
+    df.loc[1, TARGET_COLUMN] = -5
 
-    assert len(clean_data(df)) == 47
+    assert len(clean_data(df)) == 48
 
 
 def test_clean_data_resets_index():

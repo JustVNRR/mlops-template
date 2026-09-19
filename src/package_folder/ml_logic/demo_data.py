@@ -16,7 +16,25 @@ import pandas as pd
 
 from package_folder.params import DATA_SIZE, TARGET_COLUMN
 
-DAY_NAMES = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+# Parameters of the demonstration target.
+#
+# They are deliberately KNOWN and exposed: the tests assert that the model
+# recovers the relationship, rather than merely that it returns a float. That
+# is the whole advantage of a documented synthetic dataset over a random one.
+#
+# ⚠️ The keys of NUMERIC_COEFFICIENTS must match the columns built below.
+NUMERIC_COEFFICIENTS = {
+    "numeric_feature_1": 1.8,
+    "numeric_feature_2": 0.4,
+    "numeric_feature_3": 0.05,
+}
+
+# One effect per category of CATEGORICAL_FEATURES. The values are arbitrary;
+# what matters is that they differ, so the feature carries real signal.
+CATEGORY_EFFECTS = {"a": 0.0, "b": 1.5, "c": -1.2, "d": 2.4, "e": -0.6}
+
+INTERCEPT = 10.0
+NOISE_STD = 1.5
 
 
 def _n_samples_from_data_size() -> int:
@@ -36,10 +54,9 @@ def generate_demo_data(n_samples: int | None = None, seed: int = 42) -> pd.DataF
     """
     Build the synthetic dataset the template ships with.
 
-    The target is a linear combination of the features plus gaussian noise, so
-    the reference model reaches a stable MAE and consecutive runs stay
-    comparable. The coefficients are known, which lets the tests assert that the
-    model recovers the actual relationship rather than merely returning a float.
+    The target is a linear combination of the numeric features, plus a
+    per-category effect, plus gaussian noise. The reference model therefore
+    reaches a stable MAE and consecutive runs stay comparable.
 
     Reproducible: the same seed yields the same frame.
 
@@ -47,31 +64,26 @@ def generate_demo_data(n_samples: int | None = None, seed: int = 42) -> pd.DataF
     block of `params.py`.
     """
     n_samples = n_samples if n_samples is not None else _n_samples_from_data_size()
-    rng = np.random.default_rng(seed)  # reproducible: same data on every run
+    rng = np.random.default_rng(seed)
 
-    distance_km = rng.uniform(0.5, 30.0, n_samples)
-    passengers = rng.integers(1, 5, n_samples)
-    hour = rng.integers(0, 24, n_samples)
-    day_of_week = rng.choice(DAY_NAMES, n_samples)
-
-    is_night = (hour < 6) | (hour >= 22)
-    is_weekend = np.isin(day_of_week, ["saturday", "sunday"])
-
-    fare = (
-        3.0  # base fare
-        + 1.8 * distance_km  # per-kilometre rate
-        + 0.4 * passengers  # passenger surcharge
-        + 2.5 * is_night  # night surcharge
-        + 1.5 * is_weekend  # weekend surcharge
-        + rng.normal(0, 1.5, n_samples)  # irreducible noise
-    )
-
-    return pd.DataFrame(
+    frame = pd.DataFrame(
         {
-            "distance_km": distance_km,
-            "passengers": passengers,
-            "hour": hour,
-            "day_of_week": day_of_week,
-            TARGET_COLUMN: fare,
+            # On deliberately different scales: putting them on a common one is
+            # exactly what the preprocessing step is for.
+            "numeric_feature_1": rng.uniform(0.5, 30.0, n_samples),
+            "numeric_feature_2": rng.integers(1, 5, n_samples),
+            "numeric_feature_3": rng.integers(0, 24, n_samples),
+            # A categorical feature, so the encoder branch is exercised too.
+            "categorical_feature_1": rng.choice(list(CATEGORY_EFFECTS), n_samples),
         }
     )
+
+    target = INTERCEPT + frame["categorical_feature_1"].map(CATEGORY_EFFECTS)
+    for column, coefficient in NUMERIC_COEFFICIENTS.items():
+        target += coefficient * frame[column]
+
+    # Irreducible noise: it sets the floor below which no model can go, which
+    # is what makes the MAE assertions meaningful.
+    frame[TARGET_COLUMN] = target + rng.normal(0, NOISE_STD, n_samples)
+
+    return frame

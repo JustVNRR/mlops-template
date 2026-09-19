@@ -5,25 +5,41 @@ from package_folder.params import TARGET_COLUMN
 # ==============================================================================
 # 📥 INPUTS
 # ==============================================================================
-# ⚠️ This schema must mirror EXACTLY the features the model expects (see
-# NUMERIC_FEATURES and CATEGORICAL_FEATURES in params.py). It is what protects
-# the API: an incomplete or nonsensical request is rejected with a 422 and a
-# precise message, BEFORE it ever reaches the model.
+# This schema mirrors the features the model expects (see NUMERIC_FEATURES and
+# CATEGORICAL_FEATURES in params.py). It is what protects the API: an incomplete
+# or nonsensical request is rejected with a 422 and a precise message, BEFORE it
+# ever reaches the model.
 
 
-class TripFeatures(BaseModel):
-    """Characteristics of a single trip, as expected by the model."""
+class ModelFeatures(BaseModel):
+    """
+    Features of a single row, as expected by the model.
 
-    distance_km: float = Field(..., gt=0, le=1_000, description="Trip distance, in kilometres")
-    passengers: int = Field(..., ge=1, le=8, description="Number of passengers")
-    hour: int = Field(..., ge=0, le=23, description="Pickup hour (0-23)")
-    day_of_week: str = Field(..., description="Day of the week, lowercase English name")
+    TODO: rename and constrain these fields to match your own features. Every
+    constraint added here is a class of malformed request the service rejects
+    on its own, before any inference runs.
+    """
+
+    numeric_feature_1: float = Field(..., gt=0, le=1_000, description="First numeric feature")
+    numeric_feature_2: int = Field(..., ge=1, le=8, description="Second numeric feature")
+    numeric_feature_3: int = Field(..., ge=0, le=23, description="Third numeric feature")
+    categorical_feature_1: str = Field(..., description="Value of the categorical feature")
 
     model_config = ConfigDict(
         json_schema_extra={
             "examples": [
-                {"distance_km": 5.0, "passengers": 2, "hour": 14, "day_of_week": "monday"},
-                {"distance_km": 12.5, "passengers": 1, "hour": 23, "day_of_week": "saturday"},
+                {
+                    "numeric_feature_1": 5.0,
+                    "numeric_feature_2": 2,
+                    "numeric_feature_3": 14,
+                    "categorical_feature_1": "a",
+                },
+                {
+                    "numeric_feature_1": 12.5,
+                    "numeric_feature_2": 1,
+                    "numeric_feature_3": 23,
+                    "categorical_feature_1": "b",
+                },
             ]
         }
     )
@@ -33,14 +49,14 @@ class TripFeatures(BaseModel):
 # 📤 OUTPUTS
 # ==============================================================================
 class PredictionResponse(BaseModel):
-    """Prediction for a single trip."""
+    """Prediction for a single row."""
 
-    # The field name comes from params.TARGET_COLUMN: renaming the target in the
-    # data schema updates the API contract automatically.
-    fare: float = Field(..., description=f"Predicted fare ({TARGET_COLUMN})")
+    # The target name is surfaced in the description, so the generated OpenAPI
+    # schema stays in step with params.TARGET_COLUMN.
+    prediction: float = Field(..., description=f"Predicted value of {TARGET_COLUMN}")
 
 
 class BatchPredictionResponse(BaseModel):
-    """Predictions for a batch of trips, in the order of the request."""
+    """Predictions for a batch of rows, in the order of the request."""
 
-    fares: list[float] = Field(..., description="Predicted fares, in the order of the inputs")
+    predictions: list[float] = Field(..., description="Predicted values, in the order of the inputs")

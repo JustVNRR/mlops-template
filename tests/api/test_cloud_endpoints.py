@@ -8,11 +8,16 @@ from httpx import AsyncClient
 # Start it explicitly with `make test_api_cloud`.
 pytestmark = pytest.mark.integration
 
-# Valid payload, matching api/schemas.TripFeatures
-TEST_PARAMS = {"distance_km": 5.0, "passengers": 2, "hour": 14, "day_of_week": "monday"}
+# Valid payload, matching api/schemas.ModelFeatures
+TEST_PARAMS = {
+    "numeric_feature_1": 5.0,
+    "numeric_feature_2": 2,
+    "numeric_feature_3": 14,
+    "categorical_feature_1": "a",
+}
 
 # Field returned by /predict (see api/schemas.PredictionResponse)
-EXPECTED_PREDICT_KEY = "fare"
+EXPECTED_PREDICT_KEY = "prediction"
 
 SERVICE_URL = os.environ.get("SERVICE_URL")
 
@@ -40,11 +45,11 @@ async def test_root_is_up(service_url):
     assert response.status_code == 200
 
 
-async def test_root_returns_greeting(service_url):
+async def test_root_reports_the_service_is_up(service_url):
     async with AsyncClient(base_url=service_url, timeout=10.0) as client:
         response = await client.get("/")
 
-    assert response.json() == {"greeting": "Hello"}
+    assert response.json() == {"status": "ok", "message": "API is running"}
 
 
 # ==============================================================================

@@ -3,10 +3,10 @@ import pandas as pd
 import pytest
 
 from package_folder.ml_logic.data import clean_data
-from package_folder.ml_logic.demo_data import generate_demo_data
+from package_folder.ml_logic.demo_data import NOISE_STD, generate_demo_data
 from package_folder.ml_logic.model import build_model, evaluate_model, train_model
 from package_folder.ml_logic.preprocessor import build_preprocessor, preprocess_features
-from package_folder.params import ALL_FEATURES, TARGET_COLUMN
+from package_folder.params import ALL_FEATURES, CATEGORICAL_FEATURES, TARGET_COLUMN
 
 
 @pytest.fixture(scope="module")
@@ -14,6 +14,16 @@ def dataset():
     """Clean demonstration dataset, shared by the tests in this module."""
     df = clean_data(generate_demo_data(400))
     return df[ALL_FEATURES], df[TARGET_COLUMN]
+
+
+def _sample_row() -> dict:
+    """One valid row, shaped like the records the API receives."""
+    return {
+        "numeric_feature_1": 5.0,
+        "numeric_feature_2": 2,
+        "numeric_feature_3": 14,
+        "categorical_feature_1": "a",
+    }
 
 
 # ==============================================================================
@@ -70,7 +80,7 @@ def test_model_predicts_from_a_raw_dataframe(dataset):
     X, y = dataset
     model, _ = train_model(build_model(), X, y)
 
-    raw = pd.DataFrame([{"distance_km": 5.0, "passengers": 2, "hour": 14, "day_of_week": "monday"}])
+    raw = pd.DataFrame([_sample_row()])
     predictions = model.predict(raw)
 
     assert len(predictions) == 1
@@ -85,7 +95,7 @@ def test_model_handles_a_category_never_seen_in_training(dataset):
     X, y = dataset
     model, _ = train_model(build_model(), X, y)
 
-    unseen = pd.DataFrame([{"distance_km": 5.0, "passengers": 2, "hour": 14, "day_of_week": "unknown_day"}])
+    unseen = pd.DataFrame([{**_sample_row(), CATEGORICAL_FEATURES[0]: "never_seen"}])
 
     assert np.isfinite(model.predict(unseen)).all()
 
@@ -102,6 +112,19 @@ def test_model_learns_something(dataset):
     baseline_mae = float(np.abs(y - y.mean()).mean())
 
     assert metrics["mae"] < baseline_mae
+
+
+def test_model_reaches_the_noise_floor(dataset):
+    """
+    The demonstration target is a known relationship plus gaussian noise, so no
+    model can do better than the noise. Getting near it proves the model
+    recovered the relationship — which beating the mean does not.
+    """
+    X, y = dataset
+    model, _ = train_model(build_model(), X, y)
+    metrics = evaluate_model(model, X, y)
+
+    assert metrics["mae"] < 2 * NOISE_STD
 
 
 def test_model_params_are_forwarded_to_the_estimator():
