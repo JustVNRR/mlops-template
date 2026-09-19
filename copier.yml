@@ -101,6 +101,11 @@ author_name:
 # freshly generated project. So the rule below is the one hatchling applies,
 # minus the exotic forms nobody types — a dot-atom local part, and a dotted
 # domain ending in a real TLD. Everything it accepts, hatchling accepts too.
+#
+# The backslashes are doubled because a Jinja string literal is DECODED: a lone
+# `\.` is an invalid escape sequence there, which Jinja warns about and will
+# eventually stop tolerating. Doubling it is what produces the single `\.` the
+# regex needs.
 author_email:
   type: str
   help: "What is the author's email address?"
@@ -108,7 +113,7 @@ author_email:
   validator: >-
     {% if not author_email %}
     ❌ An email address is required.
-    {% elif not (author_email | regex_search('^[A-Za-z0-9._%+\'-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}\Z')) %}
+    {% elif not (author_email | regex_search('^[A-Za-z0-9._%+\'-]+@[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*\\.[A-Za-z]{2,}\\Z')) %}
     ❌ '{{ author_email }}' is not a valid email address.
     → Expected something like 'you@example.com'. The build backend reads this field and refuses to build the project when the address is malformed.
     {% endif %}

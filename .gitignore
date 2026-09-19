@@ -1,9 +1,9 @@
 # ==============================================================================
 # 🚀 THIS IS A COPIER TEMPLATE, NOT A PROJECT
 # ==============================================================================
-# There is no pyproject.toml and no installable package at the root. Everything
-# a generated project receives lives under template/, and comes with its own
-# .gitignore.
+# There is no installable package at the root — only the tests of the template
+# itself. Everything a generated project receives lives under template/, and
+# comes with its own .gitignore.
 #
 # This file only keeps the template repository itself clean — plus the secrets
 # section below, which is NOT optional: this repository is public, and a .env

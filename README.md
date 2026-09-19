@@ -66,14 +66,16 @@ both, so those targets live in `make/docker.mk` under a `gcp` condition.
 
 ## 🗂️ This repository
 
-This repository is a **template**, not a project: it has no `pyproject.toml`, no
-installable package, nothing to run. Everything a generated project receives
-lives under `template/`.
+This repository is a **template**, not a project: there is no installable
+package and nothing to run. Everything a generated project receives lives under
+`template/`.
 
 ```
 .
 ├── copier.yml      # the questions, the file exclusions, the closing message
 ├── README.md       # this file — about the template
+├── pyproject.toml  # the template's OWN tests: nothing is built or published
+├── tests/          # generates projects, then asserts on what came out
 ├── .github/        # generates a project, then validates THAT project
 └── template/       # everything the generated project receives, verbatim
 ```
@@ -123,17 +125,28 @@ and only `.env.sample` was exempted.
 
 ## ✅ How this repository is validated
 
-There is nothing to lint, test or build at the root. The CI generates a real
-project from the template and runs lint, tests and the Docker smoke test
-**inside it** — the only validation that means anything here.
+Most of the CI generates a real project from the template and runs lint, tests
+and the Docker smoke test **inside it** — the only validation that means
+anything, since the template's own sources are not valid Python.
+
+```bash
+uv sync && uv run pytest     # the fast loop, run from the repository root
+```
+
+`tests/` generates projects with [pytest-copie](https://github.com/12rambau/pytest-copie)
+and reads the result from disk: every combination of building blocks, and the
+answers that break files. It says nothing about whether a generated project
+*works* — that is what the jobs below are for. When a building block gains or
+loses a file, `FILES_PER_MODULE` in `tests/test_project.py` is the list to
+update.
 
 One job generates a project from hostile answers — a quote, a backslash, a
 triple quote — and checks that each one comes back verbatim. An escaping bug is
-invisible everywhere else: the other jobs answer with friendly names. It also
-checks that a malformed email address is refused, not written out.
+invisible in the other jobs: they answer with friendly names. It also checks
+that a malformed email address is refused, not written out.
 
-Because of that, changes to the template are checked by pushing a branch and
-reading the CI, not by running `make` locally.
+Changes to the template are therefore still checked by pushing a branch and
+reading the CI, which is what installs, lints and runs the generated projects.
 
 ## 📦 What a generated project contains
 
