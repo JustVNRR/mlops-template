@@ -94,9 +94,9 @@ DATA_SIZE = _optional("DATA_SIZE")
 CHUNK_SIZE = _int("CHUNK_SIZE", 100_000)
 MODEL_TARGET = (_optional("MODEL_TARGET") or "local").lower()
 # Source of the raw data:
-#   "toy"      -> synthetic dataset generated in memory, no cloud account needed
+#   "demo"     -> synthetic dataset generated in memory, no cloud account needed
 #   "bigquery" -> query against BigQuery, requires GCP_PROJECT and BQ_DATASET
-DATA_SOURCE = (_optional("DATA_SOURCE") or "toy").lower()
+DATA_SOURCE = (_optional("DATA_SOURCE") or "demo").lower()
 
 # --- GCP infrastructure ---
 GCP_PROJECT = _optional("GCP_PROJECT")
@@ -125,7 +125,7 @@ NOTIFY_AUTHOR = _optional("NOTIFY_AUTHOR")
 
 ##################  VALIDATIONS  ##################
 VALID_MODEL_TARGETS = ("local", "gcs", "mlflow")
-VALID_DATA_SOURCES = ("toy", "bigquery")
+VALID_DATA_SOURCES = ("demo", "bigquery")
 
 if MODEL_TARGET not in VALID_MODEL_TARGETS:
     raise NameError(
@@ -138,7 +138,7 @@ if DATA_SOURCE not in VALID_DATA_SOURCES:
     raise NameError(
         f"❌ Invalid DATA_SOURCE: {DATA_SOURCE!r}\n"
         f"   Accepted values: {', '.join(VALID_DATA_SOURCES)}\n"
-        f"   → Fix DATA_SOURCE in your .env file ('toy' requires no cloud account)."
+        f"   → Fix DATA_SOURCE in your .env file ('demo' requires no cloud account)."
     )
 
 ##################  DATA SCHEMA  #################

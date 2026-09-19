@@ -28,10 +28,10 @@ def get_raw_data(min_date: str | None = None, max_date: str | None = None) -> pd
     """
     Load raw data from the source configured by DATA_SOURCE.
 
-    - "toy"      : synthetic dataset, no network access (default)
+    - "demo"     : synthetic dataset, no network access (default)
     - "bigquery" : query against the project's raw table
     """
-    if DATA_SOURCE == "toy":
+    if DATA_SOURCE == "demo":
         print(Fore.BLUE + "\nGenerating the demonstration dataset..." + Style.RESET_ALL)
         return generate_demo_data()
 
@@ -39,7 +39,7 @@ def get_raw_data(min_date: str | None = None, max_date: str | None = None) -> pd
     if not GCP_PROJECT or not BQ_DATASET:
         raise ValueError(
             "❌ DATA_SOURCE='bigquery' requires GCP_PROJECT and BQ_DATASET in your .env.\n"
-            "   → Fill them in, or set DATA_SOURCE=toy to work offline."
+            "   → Fill them in, or set DATA_SOURCE=demo to work offline."
         )
 
     # TODO: adapt this query to the columns of YOUR raw table, then return the
@@ -55,7 +55,7 @@ def get_raw_data(min_date: str | None = None, max_date: str | None = None) -> pd
     raise NotImplementedError(
         "❌ DATA_SOURCE='bigquery': the query against your raw table still has to be written.\n"
         "   → Complete the TODO above in ml_logic/data.py,\n"
-        "     or set DATA_SOURCE=toy in your .env to use the demonstration dataset."
+        "     or set DATA_SOURCE=demo in your .env to use the demonstration dataset."
     )
 
 
