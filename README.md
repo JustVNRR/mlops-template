@@ -70,6 +70,21 @@ differ, and the closing message says so. Publishing an image to Artifact
 Registry needs both blocks as well, which is why those targets live in
 `make/docker.mk` under a `gcp` condition.
 
+### What the project owns
+
+Three files belong to the generated project from the moment it exists:
+`.gitignore`, `README.md` and the notebooks. `_skip_if_exists` means the
+template never touches them again — not on `copier update`, and not on a second
+`copier copy --overwrite` — so the user can make them theirs without wondering
+what the next update will do to them.
+
+Nothing else is on that list. The files the generated `README.md` invites the
+user to adapt — `params.py`, `data.py`, `model.py` and the rest — are code, and
+a fix to code has to be able to reach a project that already exists. Updating
+those is safe already: `copier update` applies a three-way patch, so a template
+change lands without erasing what the user wrote around it, and a genuine
+conflict is reported rather than applied.
+
 ## 🗂️ This repository
 
 This repository is a **template**, not a project: there is no installable

@@ -18,6 +18,7 @@ import ast
 import tomllib
 
 import pytest
+
 from conftest import BASE_ANSWERS, PACKAGE
 
 HOSTILE_NAMES = [

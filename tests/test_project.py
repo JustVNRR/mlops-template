@@ -21,6 +21,7 @@ from pathlib import Path
 
 import pytest
 import yaml
+
 from conftest import BASE_ANSWERS, MODULES, PACKAGE
 
 # What each building block puts on disk. `mlflow` is missing on purpose: it adds
