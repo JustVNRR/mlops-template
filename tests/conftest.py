@@ -9,11 +9,6 @@ def toy_dataframe():
     """
     Clean demonstration dataset, matching the schema declared in params.py.
 
-    ⚠️ The former `fixture_mock_raw_data` and `fixture_mock_cleaned_data`
-    fixtures built invented columns (feature_1, feature_2, target) that matched
-    NO schema in the project. Tests using them validated data the pipeline would
-    never actually encounter — a green test that proved nothing.
-
     For raw, uncleaned data, call `generate_demo_data()` directly. To test a
     specific edge case (missing value, duplicate, unknown category), build the
     DataFrame inside the test concerned: that reads better than a generic

@@ -34,11 +34,10 @@ def preprocess_features(X: pd.DataFrame) -> np.ndarray:
     """
     Transform raw features into a numeric matrix.
 
-    ⚠️ STATELESS FUNCTION: it fits a brand new preprocessor on `X`. Handy to
-    explore a dataset or test a transformation, but do NOT use it to serve a
-    model: the means, standard deviations and categories it learns would not be
-    the ones from training, which yields silently wrong predictions (no error
-    is ever raised).
+    ⚠️ STATELESS: it fits a brand new preprocessor on `X`. Fine for exploring a
+    dataset, wrong for serving a model — the means, standard deviations and
+    categories would not be the ones from training, giving silently wrong
+    predictions with no error raised.
 
     In production, call `model.predict(X)` directly: the model is a Pipeline
     that already embeds this preprocessor.

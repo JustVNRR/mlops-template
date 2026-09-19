@@ -8,12 +8,10 @@ from dotenv import load_dotenv
 # 📂 PROJECT PATHS
 # ==============================================================================
 # The project root is found by walking UP until pyproject.toml appears, rather
-# than by counting `.parent` levels.
-#
-# Counting levels is what breaks silently. This project uses the src layout, so
-# this file lives at src/<package>/params.py — one level deeper than it used to
-# be. A hardcoded `parent.parent` would have resolved to `src/` and quietly
-# started writing data/ and models/ there, without raising anything at all.
+# than by counting `.parent` levels. Counting is what breaks silently: under the
+# src layout this file sits at src/<package>/params.py, so a hardcoded
+# `parent.parent` resolves to `src/` and quietly writes data/ and models/ there —
+# with nothing raised.
 def _find_project_root() -> Path:
     for candidate in Path(__file__).resolve().parents:
         if (candidate / "pyproject.toml").is_file():

@@ -25,15 +25,13 @@ async def client(tmp_path, monkeypatch):
     """
     HTTP client wired to the ASGI app, with a model trained on the fly.
 
-    Three precautions, each fixing a real trap:
-
-    1. The registry is redirected to a temporary directory: the test does not
-       depend on a prior `make run_train` and does not pollute the real registry.
-    2. The model is trained right here (a few hundred rows, a few milliseconds):
-       the suite is self-contained, hence runnable in CI.
-    3. The `lifespan` is run EXPLICITLY. `ASGITransport` does not trigger
-       startup events: without this `async with`, `app.state.model` would stay
-       empty and every prediction would answer 503.
+    1. The registry is redirected to a temporary directory: the test neither
+       depends on a prior `make run_train` nor pollutes the real registry.
+    2. The model is trained here (a few hundred rows, a few milliseconds), which
+       keeps the suite self-contained and therefore runnable in CI.
+    3. The `lifespan` is run EXPLICITLY: `ASGITransport` does not trigger startup
+       events, so without this `async with`, `app.state.model` would stay empty
+       and every prediction would answer 503.
     """
     monkeypatch.setattr(registry, "MODEL_TARGET", "local")
     monkeypatch.setattr(registry, "MODELS_DIR", tmp_path / "models")

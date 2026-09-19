@@ -36,8 +36,8 @@ def promote(alias: str = DEFAULT_ALIAS) -> None:
     """
     Point the MLflow alias at the latest registered version.
 
-    Replaces the former "Staging → Production" transition (the "model stages"
-    API, obsolete since MLflow 2.x — see registry.mlflow_set_alias).
+    Aliases are the current mechanism: the model-stages API (Staging →
+    Production) is obsolete since MLflow 2.x. See `registry.mlflow_set_alias`.
     """
     return mlflow_set_alias(alias=alias)
 
@@ -71,12 +71,13 @@ def notify(old_mae: float | None, new_mae: float) -> None:
 @flow(name=PREFECT_FLOW_NAME)
 def train_flow() -> dict:
     """
-    Build the Prefect workflow for the pipeline. It should:
-        - preprocess 1 month of new data, starting from EVALUATION_START_DATE
-        - compute `old_mae` by evaluating the current production model on this new month period
-        - compute `new_mae` by re-training, then evaluating the new model on this new month period
-        - if the new one is better than the old one, promote it
-        - send a notification with the outcome
+    Run the full model-refresh cycle as a Prefect flow:
+
+    - preprocess one month of new data, starting from EVALUATION_START_DATE
+    - compute `old_mae`: the production model, evaluated over that period
+    - compute `new_mae`: the retrained model, evaluated over the same period
+    - promote the new model if it beats the old one
+    - notify with the outcome
     """
     if not EVALUATION_START_DATE:
         raise ValueError(
@@ -92,10 +93,9 @@ def train_flow() -> dict:
     preprocess_new_data.submit(min_date=min_date, max_date=max_date).result()
 
     # 2. Evaluate the model CURRENTLY in production, BEFORE retraining.
-    #    The previous version submitted these two steps IN PARALLEL: yet
-    #    `train()` saves a new model, which `evaluate()` could then load instead
-    #    of the old one. We ended up comparing the new model against itself, and
-    #    the promotion decision rested on a bogus comparison.
+    #    The order is what makes this comparison valid: `train()` saves a new
+    #    model, and an `evaluate()` run afterwards would load that one — comparing
+    #    the new model against itself and basing the promotion on it.
     old_mae = evaluate_production_model.submit(min_date=min_date, max_date=max_date).result()
 
     # 3. Retrain
