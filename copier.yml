@@ -1,0 +1,88 @@
+# ==============================================================================
+# 🚀 MLOps template — Copier configuration
+# ==============================================================================
+# Everything that ships to a generated project lives under `template/`. This
+# file, the README and the CI at the root describe the TEMPLATE itself and are
+# never rendered.
+#
+# Usage:
+#     copier copy gh:JustVNRR/mlops-template my-project
+
+_subdirectory: template
+
+# Copier copies the tree exactly as it finds it: it does NOT filter through
+# .gitignore. Without these entries, whatever a local test run left behind — a
+# dataset, a pickled model, a virtualenv — would be shipped to every generated
+# project. `_exclude` is the only filter that exists.
+_exclude:
+  - data/
+  - logs/
+  - mlruns/
+  - .venv/
+  - models/models/
+  - models/params/
+  - models/metrics/
+  - "**/__pycache__/"
+  - "**/*.pyc"
+
+_message_after_copy: |
+  ✅ Your project is ready.
+
+  Next steps, from the project root:
+
+    1. cp .env.sample .env     # then fill in what you need (GCP, MLflow…)
+    2. uv sync                 # creates .venv/ AND uv.lock
+    3. make run_all            # preprocess → train → evaluate → predict
+    4. make run_api            # the API starts on http://127.0.0.1:8000
+
+  Commit uv.lock. The Dockerfile and the CI install with `uv sync --frozen`,
+  which fails without it.
+
+  The folder is not a git repository yet:
+    git init && git add -A && git commit -m "Initial commit"
+
+  README.md covers the rest.
+
+# ==============================================================================
+# ❓ QUESTIONS
+# ==============================================================================
+# Only questions a newcomer can answer on sight. Anything that requires
+# understanding the template (optional building blocks, ways of working) is
+# decided by editing the generated project, not by answering up front.
+
+project_name:
+  type: str
+  help: The project name, as it should appear in the README and pyproject.toml.
+  default: My MLOps Project
+
+package_name:
+  type: str
+  help: The Python import name (snake_case, no dashes).
+  default: "{{ project_name | lower | replace(' ', '_') | replace('-', '_') }}"
+  validator: >-
+    {% if not package_name %}
+    ❌ The package name cannot be empty.
+    {% elif not (package_name | regex_search('^[a-z][a-z0-9_]*$')) %}
+    ❌ '{{ package_name }}' is not a valid Python package name.
+    → Use lowercase letters, digits and underscores only, starting with a letter.
+    {% endif %}
+
+author_name:
+  type: str
+  help: The author name that goes into pyproject.toml.
+  default: Your Name
+
+author_email:
+  type: str
+  help: The author email that goes into pyproject.toml.
+  default: you@example.com
+
+license:
+  type: str
+  help: The license declared in pyproject.toml.
+  choices:
+    - Proprietary
+    - MIT
+    - Apache-2.0
+    - BSD-3-Clause
+  default: Proprietary

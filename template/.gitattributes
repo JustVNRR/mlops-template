@@ -1,0 +1,44 @@
+# ==============================================================================
+# 🔤 LINE ENDING NORMALISATION
+# ==============================================================================
+# This project is *nix-first: it runs under WSL, inside Docker, on a GCP VM and
+# in the Ubuntu CI. All text is therefore stored AND checked out as LF, even on
+# Windows.
+#
+# Why this file is essential:
+# core.autocrlf is a GLOBAL machine setting (hence invisible in the repository).
+# A Windows machine with autocrlf=true checks the working tree out as CRLF and
+# normalises silently on read: git there reports "clean" while the files
+# actually contain CR. Seen from WSL, the same tree appears entirely modified.
+# The result: a single commit from WSL rewrites the whole repository.
+# A .gitattributes rule is versioned, so it is identical everywhere.
+* text=auto eol=lf
+
+# Scripts and makefiles: LF IS MANDATORY. A CR breaks the shebang
+# (`/bin/bash^M: bad interpreter`), fails heredocs, and contaminates variables
+# (a value read from .env ends up suffixed with a \r).
+*.sh        text eol=lf
+*.bash      text eol=lf
+Makefile    text eol=lf
+*.mk        text eol=lf
+
+# ==============================================================================
+# 🖼️ BINARY FILES — no conversion, no textual diff
+# ==============================================================================
+*.pkl       binary
+*.pickle    binary
+*.joblib    binary
+*.h5        binary
+*.hdf5      binary
+*.npz       binary
+*.npy       binary
+*.parquet   binary
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.ico       binary
+*.pdf       binary
+*.woff      binary
+*.woff2     binary
+*.ttf       binary

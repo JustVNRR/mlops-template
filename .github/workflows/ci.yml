@@ -1,24 +1,28 @@
 name: CI
 
 on:
-  # `push` WITHOUT a branch filter, on purpose: this repository's workflow is to
-  # push a work branch so the CI runs BEFORE it gets merged into main.
-  # Restricting this to `branches: [main]` would make that check impossible —
-  # the CI would only ever run after the fact. (Observed for real: the first
-  # push triggered nothing.)
   push:
   pull_request:
     branches: [main]
 
-# Cancel obsolete runs when several pushes land in a row on the same branch:
-# there is no point paying for stale results.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# This repository is a Copier TEMPLATE, not a project: there is no pyproject.toml
+# at the root and `src/{{ package_name }}/` is not valid Python. Every job below
+# therefore generates a real project first, then validates THAT. Running lint or
+# pytest here directly would validate nothing.
+env:
+  PROJECT_NAME: CI Project
+  PACKAGE_NAME: ci_project
+  AUTHOR_NAME: CI
+  AUTHOR_EMAIL: ci@example.com
+  LICENSE: MIT
+
 jobs:
   lint:
-    name: Lint (ruff)
+    name: Lint (generated project)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,20 +32,43 @@ jobs:
         with:
           enable-cache: true
 
+      - name: Generate a project from the template
+        run: |
+          uvx copier copy --defaults \
+            -d "project_name=$PROJECT_NAME" \
+            -d "package_name=$PACKAGE_NAME" \
+            -d "author_name=$AUTHOR_NAME" \
+            -d "author_email=$AUTHOR_EMAIL" \
+            -d "license=$LICENSE" \
+            . "$RUNNER_TEMP/generated"
+
+      # The answers file is produced by a template file named
+      # `{{ _copier_conf.answers_file }}.jinja`: if it is missing, that file was
+      # renamed or its suffix dropped.
+      - name: Check the generation produced a complete project
+        working-directory: ${{ runner.temp }}/generated
+        run: |
+          test -f .copier-answers.yml || { echo "❌ .copier-answers.yml is missing"; exit 1; }
+          test -f src/ci_project/params.py || { echo "❌ the package was not renamed"; exit 1; }
+          if grep -rn "package_folder" . ; then
+            echo "❌ a template placeholder survived: name the file *.jinja"
+            exit 1
+          fi
+
       - name: Install dependencies
-        run: uv sync --frozen
+        working-directory: ${{ runner.temp }}/generated
+        run: uv sync
 
       - name: Lint
+        working-directory: ${{ runner.temp }}/generated
         run: uv run ruff check .
 
-      # Checks FORMATTING without changing it: the CI rejects badly formatted
-      # code rather than fixing it. That is what keeps the codebase consistent
-      # without anyone having to think about it.
       - name: Check formatting
+        working-directory: ${{ runner.temp }}/generated
         run: uv run ruff format --check .
 
   tests:
-    name: Tests (pytest)
+    name: Tests (generated project)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -51,45 +78,70 @@ jobs:
         with:
           enable-cache: true
 
-      # `--frozen` fails if uv.lock no longer matches pyproject.toml: exactly
-      # what we want in CI, a stale lock being a bug in itself.
-      - name: Install dependencies
-        run: uv sync --frozen
+      - name: Generate a project from the template
+        run: |
+          uvx copier copy --defaults \
+            -d "project_name=$PROJECT_NAME" \
+            -d "package_name=$PACKAGE_NAME" \
+            -d "author_name=$AUTHOR_NAME" \
+            -d "author_email=$AUTHOR_EMAIL" \
+            -d "license=$LICENSE" \
+            . "$RUNNER_TEMP/generated"
 
-      # The .env is git-ignored, hence absent from a runner: start from the
-      # template, exactly as a new user would. Every variable has a default, and
-      # the tests requiring an external service (GCP, container, deployed API)
-      # are excluded by the `integration` marker.
+      - name: Install dependencies
+        working-directory: ${{ runner.temp }}/generated
+        run: uv sync
+
       - name: Create .env from the template
+        working-directory: ${{ runner.temp }}/generated
         run: cp .env.sample .env
 
       - name: Run tests
+        working-directory: ${{ runner.temp }}/generated
         run: uv run pytest
 
+      - name: Run the pipeline end to end
+        working-directory: ${{ runner.temp }}/generated
+        run: make run_all
+
   docker:
-    name: Docker build & smoke test
+    name: Docker build & smoke test (generated project)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      # Building the image is the ONLY way to validate the Dockerfile
-      # automatically — it is also step 2 of the 3-tier method described in the
-      # README.
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Generate a project from the template
+        run: |
+          uvx copier copy --defaults \
+            -d "project_name=$PROJECT_NAME" \
+            -d "package_name=$PACKAGE_NAME" \
+            -d "author_name=$AUTHOR_NAME" \
+            -d "author_email=$AUTHOR_EMAIL" \
+            -d "license=$LICENSE" \
+            . "$RUNNER_TEMP/generated"
+
+      # The Dockerfile installs with `uv sync --frozen`, which needs a lock: it
+      # is not shipped, it is generated. This is exactly what a new user does.
+      - name: Install dependencies
+        working-directory: ${{ runner.temp }}/generated
+        run: uv sync
+
       - name: Build the production image
+        working-directory: ${{ runner.temp }}/generated
         run: |
           docker build \
             --build-arg DOCKER_BASE_IMAGE=python:3.12-slim \
-            --tag mlops-template:ci \
+            --tag api:ci \
             .
 
-      # Start the container and query the API: this checks that the image does
-      # not merely build, but that the API actually answers. No model ships
-      # inside the image, so /predict will answer 503 — which is precisely the
-      # behaviour we want to guarantee: the API starts even with no model,
-      # instead of crashing on import.
       - name: Start the container and check the API answers
         run: |
-          docker run -d --name api-ci -e PORT=8000 -p 8000:8000 mlops-template:ci
+          docker run -d --name api-ci -e PORT=8000 -p 8000:8000 api:ci
 
           for attempt in $(seq 1 30); do
             if curl -fsS http://localhost:8000/ > /dev/null 2>&1; then

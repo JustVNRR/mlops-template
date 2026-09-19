@@ -1,328 +1,79 @@
 # 🚀 MLOps Template
 
-A starter template for a Machine Learning project: training, experiment
-tracking, a serving API and GCP deployment — driven by a Makefile, checked by a
-CI, and **runnable straight away, with no cloud account**.
+A [Copier](https://copier.readthedocs.io) template for a Machine Learning
+project: training, experiment tracking, a serving API and GCP deployment —
+driven by a Makefile, checked by a CI, and **runnable straight away, with no
+cloud account**.
 
----
-
-## 📋 Prerequisites
-
-| Tool | Why | Install |
-|---|---|---|
-| **GNU make** | Every project command goes through it | `sudo apt install make` (preinstalled on macOS) |
-| **uv** | Python environments and dependencies | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
-| **Docker** | Step 2 of the API tests, and the image build | [Docker Desktop](https://www.docker.com/products/docker-desktop/) |
-| **git** | Obviously | — |
-| **gcloud CLI** | *Optional* — only for GCP | [Install](https://cloud.google.com/sdk/docs/install) |
-
-> **On Windows: use WSL2.** This project is *nix-first (make, bash, sed, Docker,
-> Ubuntu CI). In a native Git Bash terminal, `make` and `uv` are not installed by
-> default and the initialisation scripts do not work. Run `wsl --install`, then
-> work from `/mnt/c/...` or — better — clone into the Linux filesystem.
-
-Python itself is **not** to be installed by hand: `uv` reads `.python-version`
-and downloads the required interpreter.
-
----
-
-## 🚀 Quick start
+## 🚀 Generate a project
 
 ```bash
-git clone https://github.com/JustVNRR/mlops-template.git my-project
+copier copy gh:JustVNRR/mlops-template my-project
 cd my-project
-
-cp .env.sample .env            # then fill in PACKAGE_NAME
-make init_project              # renames package_folder -> your package name
-
-make local_setup               # uv sync: installs Python + the dependencies
-make run_all                   # preprocess -> train -> evaluate -> predict
-make run_api                   # the API starts on http://127.0.0.1:8000
 ```
 
-`make run_all` works with **no cloud account at all**: the template generates a
-synthetic dataset, trains a reference scikit-learn model and produces
-predictions. Replace the pieces one at a time with your own afterwards (see
-[Adapting this template](#-adapting-this-template)).
+Copier asks a few questions, writes the project, and prints the next steps. No
+`git clone`, no renaming script, nothing to delete afterwards.
 
-`make init_project` is a one-shot script: it renames the package everywhere,
-then **deletes itself** along with its Makefile target.
+The generated project runs `make run_all` immediately: it ships with a
+synthetic demonstration dataset, so the whole pipeline — preprocess, train,
+evaluate, predict — works before you have a cloud account or a single row of
+real data. Replacing the demonstration pieces with your own is the subject of
+the generated `README.md`.
 
----
+## ❓ The questions
 
-## 🗂️ Project structure
+| Question | Default | What it drives |
+|---|---|---|
+| `project_name` | `My MLOps Project` | README title, `pyproject.toml` description |
+| `package_name` | derived from the name above | `src/`, every import, `uvicorn`, custom commands |
+| `author_name` | — | `pyproject.toml` |
+| `author_email` | — | `pyproject.toml` |
+| `license` | `Proprietary` | `pyproject.toml` |
+
+## 🗂️ This repository
+
+This repository is a **template**, not a project: it has no `pyproject.toml`, no
+installable package, nothing to run. Everything a generated project receives
+lives under `template/`.
 
 ```
 .
-├── src/                       # src layout: only importable code lives here
-│   └── package_folder/        #   the Python package (renamed by init_project)
-│       ├── params.py          #     configuration: schema, thresholds, env vars
-│       ├── logging_config.py  #     loguru: one stream, uvicorn and Prefect included
-│       ├── api/
-│       │   ├── fast.py        #     FastAPI application (lifespan, routes)
-│       │   └── schemas.py     #     Pydantic input/output contract
-│       ├── interface/
-│       │   ├── main.py        #     pipeline: preprocess / train / evaluate / pred
-│       │   └── workflow.py    #     Prefect orchestration
-│       └── ml_logic/
-│           ├── demo_data.py   #     the synthetic dataset (the ONLY domain file)
-│           ├── data.py        #     loading, cleaning, persistence
-│           ├── preprocessor.py#    scikit-learn transformations
-│           ├── model.py       #     build / train / evaluate
-│           ├── registry.py    #     model lifecycle (local, MLflow)
-│           └── encoders.py    #     a place for your custom encoders
-├── make/                      # Makefile targets, grouped by domain
-├── tests/
-│   ├── api/                   #   the 3 tiers (local, docker, cloud)
-│   ├── ml_logic/              #   unit tests of the pipeline
-│   └── infrastructure/        #   GCP setup checks
-├── notebooks/                 # exploration + API usage
-├── models/                    # local registry (git-ignored)
-├── scripts/                   # init_project, VM provisioning
-├── .github/workflows/ci.yml   # CI: lint, tests, Docker build
-├── pyproject.toml             # dependencies, ruff, pytest
-└── uv.lock                    # locked versions (committed)
+├── copier.yml      # the questions, the file exclusions, the closing message
+├── README.md       # this file — about the template
+├── .github/        # generates a project, then validates THAT project
+└── template/       # everything the generated project receives, verbatim
 ```
 
-`make help` lists the **56 available targets**.
+### Two rules when editing the template
 
----
+1. **A file whose content depends on an answer must be named `*.jinja`.** Copier
+   copies every other file byte for byte; only suffixed files are rendered, and
+   the suffix is stripped on output. A file left without the suffix keeps
+   `{{ package_name }}` literally — a silent, confusing failure.
 
-## ⚙️ Configuration
+2. **A file that must NOT be rendered has to stay without the suffix.** GitHub
+   Actions expressions (`${{ github.workflow }}`) and Go templates
+   (`{{.Ports}}`) are perfectly valid inside un-suffixed files, and Jinja would
+   choke on them. This is why the shipped CI workflow carries no suffix.
 
-Everything goes through `.env` (git-ignored — see `.env.sample` for the full,
-commented contract). The variables that matter at startup:
+Copier does **not** read `.gitignore`: whatever sits under `template/` ships,
+unless it matches `_exclude` in `copier.yml`. That list exists so a dataset, a
+pickled model or a virtualenv left behind by a local test run never reaches a
+generated project.
 
-| Variable | Default | Purpose |
-|---|---|---|
-| `PACKAGE_NAME` | — | Package name, used once by `make init_project` |
-| `MODEL_TARGET` | `local` | Where models are stored: `local`, `gcs` or `mlflow` |
-| `DATA_SOURCE` | `demo` | Data source: `demo` (synthetic) or `bigquery` |
-| `DATA_SIZE` | `2000` | Size of the synthetic dataset (`1k`, `200k`, `all`…) |
-| `MAE_THRESHOLD` | `3.0` | Quality bar below which a model gets promoted |
-| `LOG_LEVEL` | `INFO` | Log verbosity: `DEBUG` adds the per-file chatter |
-| `MLFLOW_*`, `GCP_*`, `BUCKET_NAME` | — | Only needed for the cloud |
+## ✅ How this repository is validated
 
-**The defaults are enough to run everything locally.** No variable is mandatory
-as long as you stay on `MODEL_TARGET=local` and `DATA_SOURCE=demo`.
+There is nothing to lint, test or build at the root. The CI generates a real
+project from the template and runs lint, tests and the Docker smoke test
+**inside it** — the only validation that means anything here.
 
----
+Because of that, changes to the template are checked by pushing a branch and
+reading the CI, not by running `make` locally.
 
-## 🧪 The pipeline
+## 📦 What a generated project contains
 
-Four steps, runnable independently — each one persists its result, so
-`make run_train` works even if `make run_preprocess` ran in another terminal:
-
-```bash
-make run_preprocess    # load, clean and save -> data/processed/
-make run_train         # fit, save the model and its metrics
-make run_evaluate      # evaluate the latest model
-make run_pred          # predict on a sample
-
-make run_all           # all four in a row
-```
-
-Models and metrics land in `models/` (JSON for metrics, pickle for models). The
-**most recent model** is always the one being served, chosen by modification
-time.
-
-### The demonstration dataset
-
-`DATA_SOURCE=demo` (the default) builds a synthetic dataset in memory, so the
-whole pipeline runs with no account and no data file to version. Its target is a
-**documented linear combination** of the features plus gaussian noise: the
-coefficients are known, which is what lets the tests assert that the model
-recovers them, rather than merely returning a number.
-
-`ml_logic/demo_data.py` is the only file that knows about it.
-
-### Orchestration (Prefect)
-
-`make run_workflow` runs the full cycle: data preparation, evaluation of the
-model in production, retraining, promotion if the new model does better, and a
-notification. Set `EVALUATION_START_DATE` in `.env` to define the evaluation
-period.
-
----
-
-## 🌐 The API
-
-```bash
-make run_api
-```
-
-| Route | Description |
-|---|---|
-| `GET /` | Service health |
-| `GET /model` | State of the loaded model, and the cause of failure if any |
-| `PUT /model` | Hot-swaps the model, with no service restart |
-| `GET /predict` | Prediction for one row (query parameters) |
-| `POST /predict_batch` | Prediction for a list of rows |
-
-Interactive documentation: <http://127.0.0.1:8000/docs>.
-
-**The API starts even with no model**: `/predict` then answers `503` with the
-exact cause, instead of failing the container at startup. That is what makes it
-deployable and testable independently of training.
-
-### The 3 validation tiers
-
-Each tier catches what the previous one cannot see:
-
-```bash
-# 1. In memory: logic and API contract
-make test_api_local
-
-# 2. Inside the container: missing dependencies, broken image
-make docker_build_local
-make docker_run_local
-make test_api_docker
-
-# 3. In production: the actually deployed URL
-make test_api_cloud
-```
-
-### Tests
-
-```bash
-make test_all            # default run: 47 tests, no service required
-make test_integration    # the 18 tests needing GCP / Docker / a deployed API
-make lint                # ruff check
-make format              # ruff format
-```
-
-Tests requiring an external service carry the `integration` marker and are
-**excluded by default**: that is what lets the CI run with no secrets at all.
-
----
-
-## ☁️ GCP deployment
-
-### Training VM
-
-```bash
-make vm_create      # creates the VM and its service account
-make vm_setup       # provisions the VM (uv, zsh, direnv)
-make vm_connect     # SSH
-```
-
-> ⚠️ **Cost management**: run `make vm_stop` as soon as you stop working (the CPU
-> is no longer billed, files are kept), `make vm_start` to resume, and
-> `make vm_delete` at the end of the project.
-
-### Data and artefacts
-
-```bash
-make bigquery_create_dataset
-make gcs_create_bucket
-make iam_setup_service_account
-```
-
-### API in production
-
-```bash
-make docker_build_prod      # linux/amd64 image
-make docker_push_prod       # to Artifact Registry
-make cloudrun_deploy        # to Cloud Run
-make cloudrun_url           # fetch the URL for SERVICE_URL
-```
-
----
-
-## 🔁 Continuous integration
-
-`.github/workflows/ci.yml` runs on every push and has three jobs:
-
-| Job | Checks |
-|---|---|
-| **Lint** | `ruff check` + `ruff format --check` |
-| **Tests** | The 47 tests, with no secrets (the `.env` is recreated from `.env.sample`) |
-| **Docker** | The image builds **and** the API actually answers inside the container |
-
-The Docker job is the only place where the `Dockerfile` is validated
-automatically — handy when step 2 of the API tests is not run locally.
-
----
-
-## 🌿 Git workflow
-
-The repository follows one simple rule: **one work batch = one branch = one
-commit**.
-
-```bash
-git switch -c fix/my-topic           # prefixes: chore, fix, feat, ci, refactor, docs
-# ... work, `make test_all`, `make lint` ...
-git commit -m "fix: ..."
-git push -u origin fix/my-topic      # the CI runs on the branch
-
-git switch main
-git merge --no-ff fix/my-topic       # --no-ff: keeps the batch visible
-git push origin main
-git branch -d fix/my-topic           # -d refuses an unmerged branch
-git push origin --delete fix/my-topic
-```
-
-`--no-ff` is not cosmetic: without it, git performs a *fast-forward*, the batch
-disappears from the history and becomes impossible to revert as a whole
-(`git revert -m 1 <merge>`).
-
----
-
-## 🔧 Troubleshooting
-
-| Symptom | Cause and fix |
-|---|---|
-| `make: command not found` | On Windows: work inside WSL2, not native Git Bash |
-| `503 No model available` | Expected before the first training run: `make run_train` |
-| `SERVICE_URL is not set` | Fetch the URL with `make cloudrun_url`, then set `SERVICE_URL` |
-| The GCP tests fail by default | They are marked `integration`. Run `make test_integration` once GCP is configured |
-| `uv sync --frozen` fails | `uv.lock` no longer matches `pyproject.toml`: `uv lock` |
-| Every file shows as modified | CRLF/LF line endings. `.gitattributes` normalises them: `git add --renormalize .` |
-| `Permission denied` on push | The GitHub token is missing a scope (`Contents`, `Workflows`…) |
-| `make: No rule to make target` | The target was renamed: `make help` lists the real ones |
-
----
-
-## 🎯 Adapting this template
-
-The template runs end to end, but is deliberately generic. No column name says
-anything about a business: `numeric_feature_1` means "the first feature the
-preprocessor treats as a number".
-
-### What those names would be in a real project
-
-A project predicting a taxi fare from distance, passenger count, hour and day of
-the week would map them like this:
-
-| Here | In that project | Declared in |
-|---|---|---|
-| `numeric_feature_1` | `distance_km` — float, 0.5 to 30 | `params.NUMERIC_FEATURES` |
-| `numeric_feature_2` | `passengers` — int, 1 to 4 | `params.NUMERIC_FEATURES` |
-| `numeric_feature_3` | `hour` — int, 0 to 23 | `params.NUMERIC_FEATURES` |
-| `categorical_feature_1` | `day_of_week` — `monday`, `tuesday`, … | `params.CATEGORICAL_FEATURES` |
-| `target` | `fare` | `params.TARGET_COLUMN` |
-
-None of that belongs in the template — the table is here to show that adapting
-it is a **renaming plus a data source**, not a rewrite.
-
-### In this order
-
-1. **`params.py`** — declare your columns (`NUMERIC_FEATURES`,
-   `CATEGORICAL_FEATURES`, `TARGET_COLUMN`), your types (`DTYPES_RAW`) and your
-   business thresholds. Every other file reads them from here.
-2. **`ml_logic/demo_data.py`** — replace `generate_demo_data()` with your own, or
-   delete the module once real data flows. Together with the schema block above,
-   it is one of the only two places that know a domain.
-3. **`ml_logic/data.py`** — complete the TODO in `get_raw_data()` (the BigQuery
-   query), and replace the placeholder outlier rule of `clean_data()` with rules
-   that match your data.
-4. **`ml_logic/preprocessor.py`** — adapt the transformations to your columns.
-5. **`ml_logic/model.py`** — replace `Ridge` with your own estimator. The rest
-   of the pipeline does not change: `train(**model_params)` forwards the
-   hyperparameters.
-6. **`api/schemas.py`** — align the input contract with your features. This file
-   restates the schema by hand, so keep the two in step.
-7. **`ml_logic/registry.py`** — implement MLflow or GCS loading if you want to
-   move beyond the local registry.
-8. **Swagger documentation** — the API title and description live in
-   `api/fast.py`.
+A FastAPI service, a scikit-learn pipeline driven by a Makefile, a local model
+registry, optional MLflow tracking and Prefect orchestration, BigQuery and Cloud
+Run deployment paths, notebooks, and a test suite split by tier (in memory,
+container, deployed). The generated `README.md` documents all of it.

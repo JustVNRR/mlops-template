@@ -1,0 +1,18 @@
+"""
+Custom encoders for scikit-learn.
+
+A place for your own transformations — geohash encoding, time slicing, business
+aggregations… — as classes exposing the `fit` / `transform` interface
+scikit-learn expects, so they can be plugged into the ColumnTransformer built by
+`preprocessor.build_preprocessor()`:
+
+    from sklearn.compose import ColumnTransformer
+    from {{ package_name }}.ml_logic.encoders import MyEncoder
+
+    ColumnTransformer([
+        ("numeric", StandardScaler(), NUMERIC_FEATURES),
+        ("business", MyEncoder(), ["my_column"]),
+    ])
+
+The template ships no encoder: an unused one would only register as dead code.
+"""

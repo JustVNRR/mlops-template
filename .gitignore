@@ -1,4 +1,15 @@
 # ==============================================================================
+# 🚀 THIS IS A COPIER TEMPLATE, NOT A PROJECT
+# ==============================================================================
+# There is no pyproject.toml and no installable package at the root. Everything
+# a generated project receives lives under template/, and comes with its own
+# .gitignore.
+#
+# This file only keeps the template repository itself clean — plus the secrets
+# section below, which is NOT optional: this repository is public, and a .env
+# committed once stays in the history forever.
+
+# ==============================================================================
 # 🔐 SECURITY & SECRETS (THE MOST IMPORTANT PART)
 # ==============================================================================
 .env
@@ -13,95 +24,24 @@
 *.json
 
 # ==============================================================================
-# 🐍 PYTHON ENVIRONMENT
+# 🧹 LOCAL ARTIFACTS OF THE TEMPLATE REPOSITORY
 # ==============================================================================
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-env/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
-# Tooling caches (ruff, mypy, pytest, notebooks)
-.pytest_cache/
-.ruff_cache/
-.mypy_cache/
-.ipynb_checkpoints/
-.coverage
-.coverage.*
-coverage.xml
-htmlcov/
-
-# ==============================================================================
-# 📦 VIRTUAL ENVIRONMENTS
-# ==============================================================================
-venv/
+# Nothing here is shipped: `_exclude` in copier.yml is what protects a
+# generated project from a local run's leftovers.
 .venv/
-env/
-.env_python/
-pip-log.txt
-pip-delete-this-directory.txt
+__pycache__/
+*.pyc
+.ruff_cache/
+.pytest_cache/
 
-# Local direnv state (the project versions .envrc, not its cache)
-.direnv/
-
-# ==============================================================================
-# 📊 DATA & MACHINE LEARNING (keep large files out of git)
-# ==============================================================================
-raw_data/
 data/
-training_outputs/
-*.csv
-*.parquet
-*.npz
-*.h5
-*.pkl
-*.model
-# Local artefacts created by MLflow or Prefect.
-# MLflow 2 used a plain directory (mlruns/); MLflow 3 creates a SQLite database
-# by default (mlflow.db), along with its WAL/SHM companion files.
+logs/
 mlruns/
 mlflow.db
 mlflow.db-*
 .prefect/
-
-# ==============================================================================
-# 🪵 LOGS (runtime output, never versioned)
-# ==============================================================================
-# Log files accumulate indefinitely and carry more than you expect: request
-# paths, row counts, and occasionally a credential pasted into a message. They
-# are output, not source.
-logs/
 *.log
 
-# ==============================================================================
-# 💻 SYSTEM (invisible files from your OS)
-# ==============================================================================
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
 *.Identifier
-
-# Local tooling configuration (never shared)
 .claude/settings.local.json
