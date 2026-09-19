@@ -5,7 +5,7 @@ import pytest
 from package_folder.ml_logic.data import clean_data, generate_toy_data
 from package_folder.ml_logic.model import build_model, evaluate_model, train_model
 from package_folder.ml_logic.preprocessor import build_preprocessor, preprocess_features
-from package_folder.params import ALL_FEATURES, CATEGORICAL_FEATURES, NUMERIC_FEATURES, TARGET_COLUMN
+from package_folder.params import ALL_FEATURES, TARGET_COLUMN
 
 
 @pytest.fixture(scope="module")
@@ -20,11 +20,17 @@ def dataset():
 # ==============================================================================
 
 def test_preprocessor_covers_every_feature():
-    """Une colonne oubliée serait silencieusement ignorée par le ColumnTransformer."""
-    preprocessor = build_preprocessor()
-    covered = NUMERIC_FEATURES + CATEGORICAL_FEATURES
+    """
+    Chaque feature déclarée dans params.py doit être effectivement transformée.
 
-    assert sorted(covered) == sorted(ALL_FEATURES)
+    Une colonne oubliée serait silencieusement ignorée par le ColumnTransformer
+    (`remainder="drop"`) : le modèle s'entraînerait sans elle, sans qu'aucune
+    erreur ne soit levée.
+    """
+    preprocessor = build_preprocessor()
+    covered = {column for _, _, columns in preprocessor.transformers for column in columns}
+
+    assert covered == set(ALL_FEATURES)
 
 
 def test_preprocess_features_returns_a_numeric_matrix(dataset):

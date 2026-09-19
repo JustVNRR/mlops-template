@@ -10,7 +10,6 @@ from package_folder.ml_logic.data import (
 )
 from package_folder.params import ALL_FEATURES, DTYPES_RAW, TARGET_COLUMN
 
-
 # ==============================================================================
 # JEU DE DÉMONSTRATION
 # ==============================================================================
