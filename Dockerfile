@@ -31,8 +31,20 @@ RUN uv sync --frozen --no-dev --no-install-project
 COPY package_folder package_folder
 RUN uv sync --frozen --no-dev
 
-# Optional: Uncomment if you have frozen models stored locally
+# 5. Exécuter en utilisateur NON-ROOT.
+#    Si l'application — ou l'une de ses dépendances — est compromise, l'attaquant
+#    n'obtient pas les droits root à l'intérieur du conteneur. Le venv et le
+#    code restent lisibles par cet utilisateur.
+RUN useradd --create-home --uid 1001 appuser
+USER appuser
+
+# Optional: Uncomment if you have models to ship inside the image.
+# ⚠️ Par défaut l'image ne contient AUCUN modèle : /predict répond 503 tant
+#    qu'aucun n'est chargé (via PUT /model, ou en implémentant le chargement
+#    MLflow/GCS dans ml_logic/registry.py). C'est volontaire : un modèle pèse
+#    vite plusieurs centaines de Mo, et le figer dans l'image oblige à
+#    reconstruire et redéployer à chaque réentraînement.
 # COPY models models
 
-# 5. Start the API (using exec to handle signals properly like CTRL+C)
+# 6. Start the API (using exec to handle signals properly like CTRL+C)
 CMD ["sh", "-c", "exec uvicorn package_folder.api.fast:app --host 0.0.0.0 --port $PORT"]
