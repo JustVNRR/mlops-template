@@ -1,0 +1,45 @@
+# ==============================================================================
+# 💬 MESSAGES — the four moments Copier talks to the user
+# ==============================================================================
+# `before_copy` is rendered before the questions, so it can only say things
+# that hold whatever the answers turn out to be. The other three are rendered
+# with the answers, and can be conditional on the flags.
+
+_message_before_copy: |
+  A few questions, and you get a project that runs end to end — no cloud
+  account needed, the dataset it ships with is synthetic.
+
+_message_after_copy: |
+  Your project {{ project_name }} is ready! 🚀
+
+  Next steps:
+
+    1. cd {{ _copier_conf.dst_path }}
+    2. cp .env.sample .env       # then fill in your credentials (GCP, MLflow...)
+    3. uv sync                   # creates the .venv/ AND generates the uv.lock
+    4. git init && git add -A
+    5. git commit -m "Initial commit"
+
+  ⚠️ Important: Make sure your new `uv.lock` is included in this first commit.
+  The Dockerfile and CI pipelines rely on it (they install strictly in `--frozen` mode) and will crash if the file is missing from your repository.
+
+  To test your setup:
+    - make run_all               # preprocess → train → evaluate → predict
+    - make run_api               # the API starts on http://127.0.0.1:8000
+
+  {% if with_docker and 'docker' not in modules %}  Note: GCP brought the Docker block along — Cloud Run deploys an image, and only the Docker block builds one.
+
+  {% endif %}  Check README.md for further details
+
+_message_before_update: |
+  Updating {{ _folder_name }} from the template.
+
+  Three files are yours and will be left alone: `.gitignore`, `README.md` and
+  the notebooks. Everything else is patched — a change that lands on a line you
+  edited is reported rather than applied.
+
+_message_after_update: |
+  Updated. 🚀
+
+    1. git diff     # what the update changed, before you commit it
+    2. uv sync      # the dependencies may have moved

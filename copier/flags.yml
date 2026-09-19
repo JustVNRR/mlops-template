@@ -1,0 +1,33 @@
+# ==============================================================================
+# 🔧 COMPUTED FLAGS — one boolean per building block
+# ==============================================================================
+# Never asked — `when: false` — and always derived from the answers above. The
+# templates then test a boolean, `{% if with_gcp %}`, instead of searching the
+# list, which is shorter and, more importantly, lets one block depend on
+# another: `modules` alone cannot express "GCP brings Docker".
+#
+# Order matters, and it is the order of this file: a flag may only read the ones
+# declared before it, so `with_gcp` comes first and `with_docker` last.
+
+with_gcp:
+  type: bool
+  when: false
+  default: "{{ 'gcp' in modules }}"
+
+with_mlflow:
+  type: bool
+  when: false
+  default: "{{ 'mlflow' in modules }}"
+
+with_prefect:
+  type: bool
+  when: false
+  default: "{{ 'prefect' in modules }}"
+
+with_docker:
+  type: bool
+  when: false
+  # Cloud Run deploys an image, and only `make/docker.mk` can build one: without
+  # the Docker block, a GCP project ships a `cloudrun_deploy` target whose image
+  # nothing can ever produce. Ticking GCP therefore ticks this too.
+  default: "{{ 'docker' in modules or with_gcp }}"
