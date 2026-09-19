@@ -26,8 +26,8 @@ echo "🔄 Initializing template: replacing '$OLD_NAME' with '$NEW_NAME'..."
 
 # 2. Search and replace in files (Mac & Linux compatible)
 # Ignore hidden folders like .git or virtual environments
-# NOTE : *.toml couvre pyproject.toml, qui contient le nom du paquet à trois
-# endroits (name, packages, known-first-party).
+# NOTE: *.toml covers pyproject.toml, which holds the package name in three
+# places (name, packages, known-first-party).
 find . -type f \( -name "*.py" -o -name "*.md" -o -name "Dockerfile" -o -name "*.toml" -o -name "Makefile" -o -name "*.mk" -o -name "*.sh" -o -name "*.yml" -o -name "*.yaml" \) -not -path "*/\.*" -not -path "*/venv/*" -not -path "*/.venv/*" | while read file; do
     if [[ "$OSTYPE" == "darwin"* ]]; then
         # Syntax for macOS

@@ -31,19 +31,19 @@ RUN uv sync --frozen --no-dev --no-install-project
 COPY package_folder package_folder
 RUN uv sync --frozen --no-dev
 
-# 5. Exécuter en utilisateur NON-ROOT.
-#    Si l'application — ou l'une de ses dépendances — est compromise, l'attaquant
-#    n'obtient pas les droits root à l'intérieur du conteneur. Le venv et le
-#    code restent lisibles par cet utilisateur.
+# 5. Run as a NON-ROOT user.
+#    If the application — or one of its dependencies — is compromised, the
+#    attacker does not gain root inside the container. The venv and the code
+#    remain readable by this user.
 RUN useradd --create-home --uid 1001 appuser
 USER appuser
 
 # Optional: Uncomment if you have models to ship inside the image.
-# ⚠️ Par défaut l'image ne contient AUCUN modèle : /predict répond 503 tant
-#    qu'aucun n'est chargé (via PUT /model, ou en implémentant le chargement
-#    MLflow/GCS dans ml_logic/registry.py). C'est volontaire : un modèle pèse
-#    vite plusieurs centaines de Mo, et le figer dans l'image oblige à
-#    reconstruire et redéployer à chaque réentraînement.
+# ⚠️ By default the image contains NO model: /predict answers 503 until one is
+#    loaded (through PUT /model, or by implementing MLflow/GCS loading in
+#    ml_logic/registry.py). That is deliberate: a model quickly weighs hundreds
+#    of megabytes, and freezing it into the image forces a rebuild and a redeploy
+#    on every retraining.
 # COPY models models
 
 # 6. Start the API (using exec to handle signals properly like CTRL+C)

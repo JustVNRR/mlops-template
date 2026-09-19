@@ -1,19 +1,19 @@
 # ==============================================================================
-# 🔐 SÉCURITÉ & SECRETS (LE PLUS IMPORTANT)
+# 🔐 SECURITY & SECRETS (THE MOST IMPORTANT PART)
 # ==============================================================================
 .env
 .env.*
 !.env.sample
 *.pem
 *.key
-# *.json est ignoré volontairement : les clés de service account GCP portent des
-# noms imprévisibles (mon-projet-1234567-abcdef.json) et une fuite coûte cher.
-# Pour versionner un JSON légitime, ajoute une exception ciblée :
+# *.json is ignored on purpose: GCP service account keys have unpredictable
+# names (my-project-1234567-abcdef.json) and a leak is expensive.
+# To version a legitimate JSON file, add a targeted exception:
 #   !config/settings.json
 *.json
 
 # ==============================================================================
-# 🐍 ENVIRONNEMENT PYTHON
+# 🐍 PYTHON ENVIRONMENT
 # ==============================================================================
 __pycache__/
 *.py[cod]
@@ -39,7 +39,7 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# Caches d'outils (ruff, mypy, pytest, notebooks)
+# Tooling caches (ruff, mypy, pytest, notebooks)
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
@@ -50,7 +50,7 @@ coverage.xml
 htmlcov/
 
 # ==============================================================================
-# 📦 ENVIRONNEMENTS VIRTUELS
+# 📦 VIRTUAL ENVIRONMENTS
 # ==============================================================================
 venv/
 .venv/
@@ -59,11 +59,11 @@ env/
 pip-log.txt
 pip-delete-this-directory.txt
 
-# État local de direnv (le projet versionne .envrc, pas son cache)
+# Local direnv state (the project versions .envrc, not its cache)
 .direnv/
 
 # ==============================================================================
-# 📊 DATA & MACHINE LEARNING (Ne pas polluer Git avec des gros fichiers)
+# 📊 DATA & MACHINE LEARNING (keep large files out of git)
 # ==============================================================================
 raw_data/
 data/
@@ -74,16 +74,16 @@ training_outputs/
 *.h5
 *.pkl
 *.model
-# Artefacts locaux créés par MLflow ou Prefect.
-# MLflow 2 utilisait un simple dossier (mlruns/) ; MLflow 3 crée par défaut une
-# base SQLite (mlflow.db) — avec ses fichiers WAL/SHM associés.
+# Local artefacts created by MLflow or Prefect.
+# MLflow 2 used a plain directory (mlruns/); MLflow 3 creates a SQLite database
+# by default (mlflow.db), along with its WAL/SHM companion files.
 mlruns/
 mlflow.db
 mlflow.db-*
 .prefect/
 
 # ==============================================================================
-# 💻 SYSTÈME (Fichiers invisibles de ton OS)
+# 💻 SYSTEM (invisible files from your OS)
 # ==============================================================================
 .DS_Store
 .DS_Store?
@@ -94,5 +94,5 @@ ehthumbs.db
 Thumbs.db
 *.Identifier
 
-# Configuration locale de l'outillage (jamais partagée)
+# Local tooling configuration (never shared)
 .claude/settings.local.json
