@@ -60,6 +60,12 @@ ignore = [
 # projects declare their own package the same way.
 [tool.ruff.lint.isort]
 known-first-party = ["conftest"]
+# And `copier` is the installed library, not the configuration directory at the
+# root of this repository: without this, ruff resolves the import against
+# `copier/` and files it with the first-party ones too, which silently changes
+# how the two are ordered. A directory named after the tool is convenient to
+# read and ambiguous to a resolver.
+known-third-party = ["copier"]
 
 [tool.ruff.format]
 quote-style = "double"
