@@ -1,62 +1,78 @@
 import os
+
 import pytest
 from httpx import AsyncClient
 
-# TODO: Fill these parameters with dummy data matching your API input schema
-test_params = {}
+# Ce module interroge l'API DÉPLOYÉE : il exige un service externe, donc exclu
+# de l'exécution par défaut (voir les markers dans pyproject.toml).
+# Lance-le explicitement avec `make test_api_cloud`.
+pytestmark = pytest.mark.integration
 
-# TODO: Define the expected key returned by your /predict endpoint
-EXPECTED_PREDICT_KEY = "prediction"
+# Charge utile valide, conforme à api/schemas.TripFeatures
+TEST_PARAMS = {"distance_km": 5.0, "passengers": 2, "hour": 14, "day_of_week": "monday"}
+
+# Champ renvoyé par /predict (voir api/schemas.PredictionResponse)
+EXPECTED_PREDICT_KEY = "fare"
 
 SERVICE_URL = os.environ.get("SERVICE_URL")
 
-@pytest.mark.asyncio
-async def test_root_is_up():
-    assert SERVICE_URL, "❌ SERVICE_URL is not set in environment variables."
-    async with AsyncClient(base_url=SERVICE_URL, timeout=10.0) as ac:
-        response = await ac.get("/")
+
+@pytest.fixture
+def service_url() -> str:
+    if not SERVICE_URL:
+        pytest.fail(
+            "❌ SERVICE_URL est vide : impossible de joindre l'API déployée.\n"
+            "   → Récupère l'URL avec `make cloudrun_url`, puis renseigne SERVICE_URL dans ton .env."
+        )
+
+    return SERVICE_URL
+
+
+# ==============================================================================
+# SANTÉ
+# ==============================================================================
+
+async def test_root_is_up(service_url):
+    async with AsyncClient(base_url=service_url, timeout=10.0) as client:
+        response = await client.get("/")
+
     assert response.status_code == 200
 
 
-@pytest.mark.asyncio
-async def test_root_returns_greeting():
-    assert SERVICE_URL, "❌ SERVICE_URL is not set in environment variables."
-    async with AsyncClient(base_url=SERVICE_URL, timeout=10.0) as ac:
-        response = await ac.get("/")
+async def test_root_returns_greeting(service_url):
+    async with AsyncClient(base_url=service_url, timeout=10.0) as client:
+        response = await client.get("/")
+
     assert response.json() == {"greeting": "Hello"}
 
 
-@pytest.mark.asyncio
-async def test_predict_is_up():
-    assert SERVICE_URL, "❌ SERVICE_URL is not set in environment variables."
-    assert test_params, "❌ TODO: You must define 'test_params' to run predict tests!"
-    async with AsyncClient(base_url=SERVICE_URL, timeout=10.0) as ac:
-        response = await ac.get("/predict", params=test_params)
+# ==============================================================================
+# PRÉDICTION
+# ==============================================================================
+
+async def test_predict_is_up(service_url):
+    async with AsyncClient(base_url=service_url, timeout=10.0) as client:
+        response = await client.get("/predict", params=TEST_PARAMS)
+
     assert response.status_code == 200
 
 
-@pytest.mark.asyncio
-async def test_predict_is_dict():
-    assert SERVICE_URL, "❌ SERVICE_URL is not set in environment variables."
-    assert test_params, "❌ TODO: You must define 'test_params' to run predict tests!"
-    async with AsyncClient(base_url=SERVICE_URL, timeout=10.0) as ac:
-        response = await ac.get("/predict", params=test_params)
+async def test_predict_is_dict(service_url):
+    async with AsyncClient(base_url=service_url, timeout=10.0) as client:
+        response = await client.get("/predict", params=TEST_PARAMS)
+
     assert isinstance(response.json(), dict)
 
 
-@pytest.mark.asyncio
-async def test_predict_has_key():
-    assert SERVICE_URL, "❌ SERVICE_URL is not set in environment variables."
-    assert test_params, "❌ TODO: You must define 'test_params' to run predict tests!"
-    async with AsyncClient(base_url=SERVICE_URL, timeout=10.0) as ac:
-        response = await ac.get("/predict", params=test_params)
-    assert response.json().get(EXPECTED_PREDICT_KEY, False), f"Key '{EXPECTED_PREDICT_KEY}' not found in response"
+async def test_predict_has_key(service_url):
+    async with AsyncClient(base_url=service_url, timeout=10.0) as client:
+        response = await client.get("/predict", params=TEST_PARAMS)
+
+    assert EXPECTED_PREDICT_KEY in response.json(), f"Clé '{EXPECTED_PREDICT_KEY}' absente de la réponse"
 
 
-@pytest.mark.asyncio
-async def test_cloud_api_predict_val_is_float():
-    assert SERVICE_URL, "❌ SERVICE_URL is not set in environment variables."
-    assert test_params, "❌ TODO: You must define 'test_params' to run predict tests!"
-    async with AsyncClient(base_url=SERVICE_URL, timeout=10.0) as ac:
-        response = await ac.get("/predict", params=test_params)
-    assert isinstance(response.json().get(EXPECTED_PREDICT_KEY), float)
+async def test_cloud_api_predict_val_is_float(service_url):
+    async with AsyncClient(base_url=service_url, timeout=10.0) as client:
+        response = await client.get("/predict", params=TEST_PARAMS)
+
+    assert isinstance(response.json()[EXPECTED_PREDICT_KEY], float)

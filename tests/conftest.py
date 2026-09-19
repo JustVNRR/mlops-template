@@ -1,33 +1,22 @@
 import pytest
-import pandas as pd
-import numpy as np
 
-# TODO: Import your project's specific constants or types if needed
-# from package_folder.params import *
+from package_folder.ml_logic.data import clean_data, generate_toy_data
 
-@pytest.fixture(scope="session")
-def fixture_mock_raw_data() -> pd.DataFrame:
-    """
-    Provides a mock raw DataFrame for testing.
-    scope="session" ensures this runs only once per test suite execution.
-    """
-    # TODO: Replace with your own mock data generation or load a small local CSV
-    data = {
-        "feature_1": np.random.rand(10),
-        "feature_2": np.random.rand(10),
-        "target": np.random.randint(0, 2, 10)
-    }
-    return pd.DataFrame(data)
 
-@pytest.fixture(scope="session")
-def fixture_mock_cleaned_data() -> pd.DataFrame:
+@pytest.fixture
+def toy_dataframe():
     """
-    Provides a mock cleaned DataFrame for testing model training or predictions.
+    Jeu de démonstration nettoyé, conforme au schéma déclaré dans params.py.
+
+    ⚠️ Les anciennes fixtures `fixture_mock_raw_data` et
+    `fixture_mock_cleaned_data` fabriquaient des colonnes inventées
+    (feature_1, feature_2, target) qui ne correspondaient à AUCUN schéma du
+    projet. Les tests qui s'en servaient validaient donc des données que le
+    pipeline n'aurait jamais rencontrées — un test vert qui ne prouvait rien.
+
+    Pour des données brutes non nettoyées, appelle directement
+    `generate_toy_data()`. Pour tester un cas limite précis (valeur manquante,
+    doublon, catégorie inconnue), construis le DataFrame dans le test concerné :
+    c'est plus lisible qu'une fixture générique.
     """
-    # TODO: Adapt to your project's expected cleaned data format
-    data = {
-        "feature_1_scaled": np.random.rand(10),
-        "feature_2_scaled": np.random.rand(10),
-        "target": np.random.randint(0, 2, 10)
-    }
-    return pd.DataFrame(data)
+    return clean_data(generate_toy_data(100))

@@ -1,93 +1,110 @@
-import pytest
-from httpx import AsyncClient
 import os
 import re
 import subprocess
 
-# TODO: Fill these parameters with dummy data matching your API input schema
-test_params = {}
+import pytest
+from httpx import AsyncClient
 
-# TODO: Define the expected key returned by your /predict endpoint
-EXPECTED_PREDICT_KEY = "prediction"
+# Ce module interroge une API réellement servie dans un conteneur : il exige un
+# service externe, donc exclu de l'exécution par défaut (voir les markers dans
+# pyproject.toml). Lance-le explicitement avec `make test_api_docker`.
+pytestmark = pytest.mark.integration
 
-# Find the port the docker image is running on
-image_name = f"{os.environ.get('GAR_IMAGE')}:dev"
+# Charge utile valide, conforme à api/schemas.TripFeatures
+TEST_PARAMS = {"distance_km": 5.0, "passengers": 2, "hour": 14, "day_of_week": "monday"}
 
-# Use docker ps to list all running containers derived from $GAR_IMAGE:dev
-docker_ps_command = f'docker ps --filter ancestor={image_name} --format "{{{{.Ports}}}}"'
-docker_ps_output = subprocess.Popen(
-    docker_ps_command,
-    shell=True,
-    stdout=subprocess.PIPE
-).stdout.read().decode("utf-8")
+# Champ renvoyé par /predict (voir api/schemas.PredictionResponse)
+EXPECTED_PREDICT_KEY = "fare"
 
-# If we have an output, extract the port the container is running on
-if docker_ps_output:
-    # Match the mapped port (e.g., 0.0.0.0:8000->8000/tcp)
-    match = re.findall(r":(\d{4,5})->", docker_ps_output)
-    docker_port = match[0] if match else None
-else:
-    docker_port = None
-
-SERVICE_URL = f"http://localhost:{docker_port}" if docker_port else None
-
-ERROR_DOCKER_PORT = f"""
-❌ ERROR: We did not find a running docker container for '{image_name}'.
-Verify:
-  1. Your docker container is running (e.g., make docker_run_local)
-  2. The docker image is correctly named using $GAR_IMAGE:dev
-"""
-
-ERROR_PARAMS = "❌ TODO: You must define 'test_params' to run predict tests!"
+IMAGE_NAME = f"{os.environ.get('GAR_IMAGE')}:dev"
 
 
-@pytest.mark.asyncio
-async def test_root_is_up():
-    assert docker_port, ERROR_DOCKER_PORT
-    async with AsyncClient(base_url=SERVICE_URL, timeout=10.0) as ac:
-        response = await ac.get("/")
+def _running_container_port() -> str | None:
+    """
+    Port publié par le conteneur issu de l'image locale, ou None.
+
+    Pas de `shell=True` : le nom de l'image vient de l'environnement, et
+    l'interpoler dans une commande shell ouvrirait une injection. On passe
+    donc une liste d'arguments, sans passer par un shell.
+    """
+    result = subprocess.run(
+        ["docker", "ps", "--filter", f"ancestor={IMAGE_NAME}", "--format", "{{.Ports}}"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    match = re.search(r":(\d{4,5})->", result.stdout)
+    return match.group(1) if match else None
+
+
+@pytest.fixture(scope="module")
+def service_url() -> str:
+    """
+    URL du conteneur en cours d'exécution.
+
+    La détection vit dans une fixture et non au niveau du module : l'ancienne
+    version lançait `docker ps` à l'IMPORT, donc dès la collecte, y compris
+    pour les tests d'un autre fichier.
+    """
+    port = _running_container_port()
+
+    if not port:
+        pytest.fail(
+            f"❌ Aucun conteneur en cours d'exécution pour l'image '{IMAGE_NAME}'.\n"
+            f"   Vérifie que :\n"
+            f"     1. ton conteneur tourne (make docker_run_local)\n"
+            f"     2. l'image porte bien le nom $GAR_IMAGE:dev"
+        )
+
+    return f"http://localhost:{port}"
+
+
+# ==============================================================================
+# SANTÉ
+# ==============================================================================
+
+async def test_root_is_up(service_url):
+    async with AsyncClient(base_url=service_url, timeout=10.0) as client:
+        response = await client.get("/")
+
     assert response.status_code == 200
 
 
-@pytest.mark.asyncio
-async def test_root_returns_greeting():
-    assert docker_port, ERROR_DOCKER_PORT
-    async with AsyncClient(base_url=SERVICE_URL, timeout=10.0) as ac:
-        response = await ac.get("/")
+async def test_root_returns_greeting(service_url):
+    async with AsyncClient(base_url=service_url, timeout=10.0) as client:
+        response = await client.get("/")
+
     assert response.json() == {"greeting": "Hello"}
 
 
-@pytest.mark.asyncio
-async def test_predict_is_up():
-    assert docker_port, ERROR_DOCKER_PORT
-    assert test_params, ERROR_PARAMS
-    async with AsyncClient(base_url=SERVICE_URL, timeout=10.0) as ac:
-        response = await ac.get("/predict", params=test_params)
+# ==============================================================================
+# PRÉDICTION
+# ==============================================================================
+
+async def test_predict_is_up(service_url):
+    async with AsyncClient(base_url=service_url, timeout=10.0) as client:
+        response = await client.get("/predict", params=TEST_PARAMS)
+
     assert response.status_code == 200
 
 
-@pytest.mark.asyncio
-async def test_predict_is_dict():
-    assert docker_port, ERROR_DOCKER_PORT
-    assert test_params, ERROR_PARAMS
-    async with AsyncClient(base_url=SERVICE_URL, timeout=10.0) as ac:
-        response = await ac.get("/predict", params=test_params)
+async def test_predict_is_dict(service_url):
+    async with AsyncClient(base_url=service_url, timeout=10.0) as client:
+        response = await client.get("/predict", params=TEST_PARAMS)
+
     assert isinstance(response.json(), dict)
 
 
-@pytest.mark.asyncio
-async def test_predict_has_key():
-    assert docker_port, ERROR_DOCKER_PORT
-    assert test_params, ERROR_PARAMS
-    async with AsyncClient(base_url=SERVICE_URL, timeout=10.0) as ac:
-        response = await ac.get("/predict", params=test_params)
-    assert response.json().get(EXPECTED_PREDICT_KEY, False), f"Key '{EXPECTED_PREDICT_KEY}' not found in response"
+async def test_predict_has_key(service_url):
+    async with AsyncClient(base_url=service_url, timeout=10.0) as client:
+        response = await client.get("/predict", params=TEST_PARAMS)
+
+    assert EXPECTED_PREDICT_KEY in response.json(), f"Clé '{EXPECTED_PREDICT_KEY}' absente de la réponse"
 
 
-@pytest.mark.asyncio
-async def test_docker_api_predict_val_is_float():
-    assert docker_port, ERROR_DOCKER_PORT
-    assert test_params, ERROR_PARAMS
-    async with AsyncClient(base_url=SERVICE_URL, timeout=10.0) as ac:
-        response = await ac.get("/predict", params=test_params)
-    assert isinstance(response.json().get(EXPECTED_PREDICT_KEY), float)
+async def test_docker_api_predict_val_is_float(service_url):
+    async with AsyncClient(base_url=service_url, timeout=10.0) as client:
+        response = await client.get("/predict", params=TEST_PARAMS)
+
+    assert isinstance(response.json()[EXPECTED_PREDICT_KEY], float)
