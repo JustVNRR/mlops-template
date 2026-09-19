@@ -1,5 +1,5 @@
 # ==============================================================================
-# 🔐 ENVIRONNEMENTS ET SECRETS
+# 🔐 ENVIRONMENTS AND SECRETS
 # ==============================================================================
 .env
 .env.*
@@ -10,7 +10,7 @@ venv/
 .direnv/
 
 # ==============================================================================
-# 🐍 RÉSIDUS PYTHON LOCAUX
+# 🐍 LOCAL PYTHON LEFTOVERS
 # ==============================================================================
 **/__pycache__/
 *.pyc
@@ -21,11 +21,11 @@ venv/
 build/
 dist/
 
-# ⚠️ NE PAS exclure ici : pyproject.toml, uv.lock, .python-version et README.md.
-# uv en a besoin pour résoudre les dépendances et construire le paquet.
+# ⚠️ DO NOT exclude these: pyproject.toml, uv.lock, .python-version and
+# README.md. uv needs them to resolve dependencies and build the package.
 
 # ==============================================================================
-# 🧪 DÉVELOPPEMENT (inutile en production)
+# 🧪 DEVELOPMENT (useless in production)
 # ==============================================================================
 tests/
 notebooks/
@@ -34,7 +34,7 @@ mlruns/
 .prefect/
 
 # ==============================================================================
-# 🗂️ GIT, OUTILLAGE ET DOCUMENTATION
+# 🗂️ GIT, TOOLING AND DOCUMENTATION
 # ==============================================================================
 .git/
 .gitignore

@@ -1,29 +1,29 @@
 # ==============================================================================
-# 🔤 NORMALISATION DES FINS DE LIGNE
+# 🔤 LINE ENDING NORMALISATION
 # ==============================================================================
-# Ce projet est *nix-first : il s'exécute sous WSL, dans Docker, sur une VM GCP
-# et dans la CI Ubuntu. Tout le texte est donc stocké ET extrait en LF, même
-# sous Windows.
+# This project is *nix-first: it runs under WSL, inside Docker, on a GCP VM and
+# in the Ubuntu CI. All text is therefore stored AND checked out as LF, even on
+# Windows.
 #
-# Pourquoi ce fichier est indispensable :
-# core.autocrlf est une configuration GLOBALE à la machine (donc invisible dans
-# le dépôt). Une machine Windows avec autocrlf=true extrait le worktree en CRLF
-# et normalize en silence à la lecture : git y affiche « propre » alors que les
-# fichiers contiennent des CR. Vue depuis WSL, la même arborescence apparaît
-# entièrement modifiée. Résultat : un commit depuis WSL réécrit tout le dépôt.
-# Une règle .gitattributes est versionnée, elle — donc identique partout.
+# Why this file is essential:
+# core.autocrlf is a GLOBAL machine setting (hence invisible in the repository).
+# A Windows machine with autocrlf=true checks the working tree out as CRLF and
+# normalises silently on read: git there reports "clean" while the files
+# actually contain CR. Seen from WSL, the same tree appears entirely modified.
+# The result: a single commit from WSL rewrites the whole repository.
+# A .gitattributes rule is versioned, so it is identical everywhere.
 * text=auto eol=lf
 
-# Scripts et makefiles : LF OBLIGATOIRE. Un CR casse le shebang
-# (`/bin/bash^M: bad interpreter`), fait échouer les heredocs et contamine les
-# variables (ex. une valeur lue depuis .env se retrouve suffixée d'un \r).
+# Scripts and makefiles: LF IS MANDATORY. A CR breaks the shebang
+# (`/bin/bash^M: bad interpreter`), fails heredocs, and contaminates variables
+# (a value read from .env ends up suffixed with a \r).
 *.sh        text eol=lf
 *.bash      text eol=lf
 Makefile    text eol=lf
 *.mk        text eol=lf
 
 # ==============================================================================
-# 🖼️ FICHIERS BINAIRES — aucune conversion, aucun diff textuel
+# 🖼️ BINARY FILES — no conversion, no textual diff
 # ==============================================================================
 *.pkl       binary
 *.pickle    binary

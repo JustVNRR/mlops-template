@@ -1,22 +1,24 @@
 #!/bin/bash
 # ==============================================================================
-# Provisionnement d'une VM GCP Ubuntu pour ce projet.
+# Provisioning a GCP Ubuntu VM for this project.
 # ==============================================================================
-# Exécuté par `make vm_setup`, qui envoie ce script sur la VM puis l'y exécute.
+# Run by `make vm_setup`, which uploads this script to the VM and executes it
+# there.
 #
-# Historiquement, ce script installait pyenv + pyenv-virtualenv et créait un
-# virtualenv nommé, dont le nom et la version de Python étaient passés en
-# arguments. Le projet est passé à uv : `uv sync` lit `.python-version`,
-# télécharge l'interpréteur correspondant et installe les dépendances dans
-# .venv. Il n'y a donc plus ni version ni nom d'environnement à transmettre.
+# Historically this script installed pyenv + pyenv-virtualenv and created a
+# named virtualenv, whose name and Python version were passed as arguments.
+# The project moved to uv: `uv sync` reads `.python-version`, downloads the
+# matching interpreter and installs the dependencies into .venv. There is
+# therefore no longer any version or environment name to pass around.
 set -euo pipefail
 
-echo "🚀 Provisionnement de la VM..."
+echo "🚀 Provisioning the VM..."
 
-# --- 1. Paquets système ---
-# build-essential n'est plus requis pour compiler CPython (uv télécharge des
-# binaires précompilés), mais reste utile dès qu'une dépendance a du code natif.
-echo "📦 Installation des paquets système..."
+# --- 1. System packages ---
+# build-essential is no longer needed to compile CPython (uv downloads
+# prebuilt binaries), but it remains useful as soon as a dependency ships
+# native code.
+echo "📦 Installing system packages..."
 sudo apt-get update
 sudo apt-get install -y make curl git zsh direnv
 
@@ -26,35 +28,34 @@ if [ ! -d "$HOME/.oh-my-zsh" ]; then
 fi
 
 # --- 3. uv ---
-# uv REMPLACE pyenv ET pyenv-virtualenv : il gère lui-même les versions de
-# Python. Rien à installer via apt, un seul binaire statique suffit.
+# uv REPLACES pyenv AND pyenv-virtualenv: it manages Python versions itself.
+# Nothing to install through apt, a single static binary is enough.
 if ! command -v uv >/dev/null 2>&1 && [ ! -x "$HOME/.local/bin/uv" ]; then
-    echo "🐍 Installation de uv..."
+    echo "🐍 Installing uv..."
     curl -LsSf https://astral.sh/uv/install.sh | sh
 fi
 
 export PATH="$HOME/.local/bin:$PATH"
 
-# Rendre uv disponible dans les shells suivants. L'installateur ajoute parfois
-# la ligne lui-même : on vérifie avant d'écrire, pour ne pas la dupliquer à
-# chaque provisionnement.
+# Make uv available in subsequent shells. The installer sometimes adds the line
+# itself: we check before writing, so it is not duplicated on every provision.
 if [ -f "$HOME/.zshrc" ] && ! grep -q "local/bin" "$HOME/.zshrc"; then
     cat >> "$HOME/.zshrc" << 'EOF'
 
-# uv — gestionnaire d'environnements Python du projet
+# uv — the project's Python environment manager
 export PATH="$HOME/.local/bin:$PATH"
 EOF
 fi
 
-# --- 4. Plugins ZSH ---
+# --- 4. ZSH plugins ---
 if [ -f "$HOME/.zshrc" ]; then
     sed -i 's/plugins=(git)/plugins=(git uv ssh-agent direnv)/' "$HOME/.zshrc"
 fi
 
 echo
-echo "✅ Provisionnement terminé."
+echo "✅ Provisioning complete."
 echo
-echo "👉 Prochaines étapes, SUR la VM :"
-echo "   1. git clone <url-de-ton-repo> && cd <nom-du-repo>"
-echo "   2. make local_setup      # uv sync : installe Python et les dépendances"
-echo "   3. Ouvrir un nouveau shell (ou 'source ~/.zshrc') pour avoir uv dans le PATH"
+echo "👉 Next steps, ON the VM:"
+echo "   1. git clone <your-repo-url> && cd <repo-name>"
+echo "   2. make local_setup      # uv sync: installs Python and the dependencies"
+echo "   3. Open a new shell (or 'source ~/.zshrc') so uv is on your PATH"
