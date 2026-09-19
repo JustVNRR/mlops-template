@@ -29,11 +29,10 @@ help: ## Affiche ce menu d'aide
 # 🧹 PROJECT CLEANING & SETUP
 # ==============================================================================
 
-reinstall_package: ## Force uninstall and reinstall the package with dev dependencies
-	@echo "🔄 Reinstalling package..."
-	@pip uninstall -y package_folder || :
-	@pip install -e ".[dev]"
-	@echo "✅ Package reinstalled successfully."
+reinstall_package: ## Force a clean reinstall of the environment (bypasses uv cache)
+	@echo "🔄 Reinstalling environment..."
+	@uv sync --reinstall
+	@echo "✅ Environment reinstalled successfully."
 
 init_data_folders: ## Create local directories for data and model outputs
 	@echo "📁 Creating local data folders..."
@@ -53,4 +52,5 @@ clean: ## Clean Python cache, build files, and hidden OS files
 	@find . -type f -name "*Zone.Identifier" -delete
 	@find . -type f -name ".DS_Store" -delete
 	@rm -rf build/ dist/ *.egg-info/ *.dist-info/
+	@rm -rf .pytest_cache/ .ruff_cache/ .mypy_cache/ .coverage
 	@echo "✅ Cleaned up successfully."

@@ -2,22 +2,16 @@
 # LOCAL ENVIRONMENT SETUP
 # ==============================================================================
 
-local_setup: ## Setup local virtual environment using pyenv
-	@echo "🐍 Installing Python $(PYTHON_VERSION)..."
-	pyenv install -s $(PYTHON_VERSION)
-	@echo "📦 Creating virtual environment $(VENV_NAME)..."
-	pyenv virtualenv $(PYTHON_VERSION) $(VENV_NAME) || true
-	@echo "🔗 Linking virtual environment to current folder..."
-	pyenv local $(VENV_NAME)
-	@echo "🛠️ Upgrading pip..."
-	pip install --upgrade pip
-	@if [ ! -f setup.py ]; then \
-		echo "❌ CRITICAL ERROR: setup.py not found! Cannot install the package."; \
+local_setup: ## Create the local environment with uv (Python + dependencies)
+	@if [ ! -f pyproject.toml ]; then \
+		echo "❌ CRITICAL ERROR: pyproject.toml not found! Cannot install the package."; \
 		exit 1; \
 	fi
-	@echo "📚 Installing project and dependencies in editable mode..."
-	pip install -e ".[dev]"
-	@echo "✅ Local setup complete! Your folder is now using $(VENV_NAME)."
+	@echo "📦 Syncing the environment with uv (installs the pinned Python if needed)..."
+	uv sync
+	@echo "✅ Local setup complete!"
+	@echo "👉 Prefix your commands with 'uv run' (e.g. 'uv run pytest'), or activate the venv:"
+	@echo "   source .venv/bin/activate"
 
 init_project: ## 🏗️ Initialize the template with PACKAGE_NAME from .env
 	@bash scripts/init_template.sh

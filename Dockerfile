@@ -1,23 +1,38 @@
-# 1. Retrieve the base image dynamically (passed by the Makefile)
+# 1. Retrieve the base image dynamically (passed by the Makefile / .env)
 ARG DOCKER_BASE_IMAGE
 FROM ${DOCKER_BASE_IMAGE}
 
+# 2. Bring in uv (official static binary). No pip, no requirements.txt:
+#    uv.lock is the single source of truth for versions.
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
 WORKDIR /api
 
-# 2. Install dependencies (Production only!)
-COPY requirements.txt requirements.txt
-RUN pip install --upgrade pip
-RUN pip install --no-cache-dir -r requirements.txt
+# Deterministic, container-friendly uv behaviour:
+#   UV_COMPILE_BYTECODE : pre-compile .pyc for faster cold starts
+#   UV_LINK_MODE=copy   : cache and target live on different layers, hardlinks
+#                         are not possible there
+#   PYTHONUNBUFFERED    : logs reach Cloud Run immediately, not on container exit
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_PROJECT_ENVIRONMENT=/api/.venv \
+    PATH="/api/.venv/bin:$PATH" \
+    PYTHONUNBUFFERED=1
 
-# 3. Copy the source code and install the package
+# 3. Install DEPENDENCIES FIRST, alone. This layer stays cached as long as
+#    pyproject.toml / uv.lock do not change: editing code does not reinstall
+#    the dependency tree.
+#    README.md is required here because the project metadata references it.
+COPY pyproject.toml uv.lock README.md ./
+RUN uv sync --frozen --no-dev --no-install-project
+
+# 4. Copy the source code, then install the project itself
+#    (--no-dev: production image, no pytest/ruff/ipykernel)
 COPY package_folder package_folder
-COPY setup.py setup.py
+RUN uv sync --frozen --no-dev
 
 # Optional: Uncomment if you have frozen models stored locally
 # COPY models models
-
-# 4. Production magic: install the package without the [dev] dependencies!
-RUN pip install . && rm -rf build *.egg-info
 
 # 5. Start the API (using exec to handle signals properly like CTRL+C)
 CMD ["sh", "-c", "exec uvicorn package_folder.api.fast:app --host 0.0.0.0 --port $PORT"]
