@@ -96,13 +96,13 @@ commented contract). The variables that matter at startup:
 |---|---|---|
 | `PACKAGE_NAME` | — | Package name, used once by `make init_project` |
 | `MODEL_TARGET` | `local` | Where models are stored: `local`, `gcs` or `mlflow` |
-| `DATA_SOURCE` | `toy` | Data source: `toy` (synthetic) or `bigquery` |
+| `DATA_SOURCE` | `demo` | Data source: `demo` (synthetic) or `bigquery` |
 | `DATA_SIZE` | `2000` | Size of the synthetic dataset (`1k`, `200k`, `all`…) |
 | `MAE_THRESHOLD` | `3.0` | Quality bar below which a model gets promoted |
 | `MLFLOW_*`, `GCP_*`, `BUCKET_NAME` | — | Only needed for the cloud |
 
 **The defaults are enough to run everything locally.** No variable is mandatory
-as long as you stay on `MODEL_TARGET=local` and `DATA_SOURCE=toy`.
+as long as you stay on `MODEL_TARGET=local` and `DATA_SOURCE=demo`.
 
 ---
 
@@ -126,7 +126,7 @@ time.
 
 ### The demonstration dataset
 
-`DATA_SOURCE=toy` (the default) builds a synthetic dataset in memory, so the
+`DATA_SOURCE=demo` (the default) builds a synthetic dataset in memory, so the
 whole pipeline runs with no account and no data file to version. Its target is a
 **documented linear combination** of the features plus gaussian noise: the
 coefficients are known, which is what lets the tests assert that the model

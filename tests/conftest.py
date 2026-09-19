@@ -5,7 +5,7 @@ from package_folder.ml_logic.demo_data import generate_demo_data
 
 
 @pytest.fixture
-def toy_dataframe():
+def demo_dataframe():
     """
     Clean demonstration dataset, matching the schema declared in params.py.
 
