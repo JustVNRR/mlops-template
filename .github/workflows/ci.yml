@@ -261,3 +261,83 @@ jobs:
             exit 1
           fi
           echo "✅ the docker/gcp overlap is handled"
+
+  # The answers are free text, and they land in files that have a syntax of
+  # their own: a `"` in a project name used to produce an unreadable
+  # pyproject.toml, silently. Generating from hostile answers and re-reading
+  # what came out is the only check that sees it — `uv sync` on the other jobs
+  # uses a friendly name and would never notice.
+  escaping:
+    name: Escaping (hostile answers)
+    runs-on: ubuntu-latest
+    env:
+      # A double quote, a backslash and a triple quote, which break the TOML
+      # string, the TOML escape, and the docstring respectively.
+      HOSTILE_PROJECT_NAME: 'Mr. "Quoted" \ """ Project'
+      HOSTILE_AUTHOR_NAME: 'O''Keefe "The Great" & <Sons>'
+      # A quoted local part, which is a legal address: hatchling parses this
+      # field (email.headerregistry.Address) and refuses to build a project
+      # whose email is malformed. This job exercises the escaping, not
+      # hatchling's validation.
+      HOSTILE_AUTHOR_EMAIL: '"o''keefe"@example.com'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Generate a project from hostile answers
+        run: |
+          uvx copier copy --defaults \
+            -d "project_name=$HOSTILE_PROJECT_NAME" \
+            -d "package_name=hostile_project" \
+            -d "author_name=$HOSTILE_AUTHOR_NAME" \
+            -d "author_email=$HOSTILE_AUTHOR_EMAIL" \
+            -d "license=MIT" \
+            . "$RUNNER_TEMP/hostile"
+
+      # An answer that parses is not enough: `O'Keefe` parses, and is not
+      # what was typed. Every value is read back and compared to the answer.
+      - name: Check every answer survived verbatim
+        working-directory: ${{ runner.temp }}/hostile
+        run: |
+          python3 - <<'PY'
+          import ast
+          import os
+          import pathlib
+          import tomllib
+
+          name = os.environ["HOSTILE_PROJECT_NAME"]
+          author = os.environ["HOSTILE_AUTHOR_NAME"]
+          email = os.environ["HOSTILE_AUTHOR_EMAIL"]
+
+          with open("pyproject.toml", "rb") as fh:
+              project = tomllib.load(fh)["project"]
+          authors = project.get("authors") or [{}]
+
+          docstring = ast.get_docstring(
+              ast.parse(pathlib.Path("src/hostile_project/__init__.py").read_text())
+          )
+
+          found = {
+              "pyproject.toml description": project.get("description"),
+              "pyproject.toml author name": authors[0].get("name"),
+              "pyproject.toml author email": authors[0].get("email"),
+              "__init__.py docstring": docstring,
+          }
+          expected = {
+              "pyproject.toml description": name,
+              "pyproject.toml author name": author,
+              "pyproject.toml author email": email,
+              "__init__.py docstring": f"{name}.\n\nThe import name is declared in pyproject.toml.",
+          }
+
+          wrong = {label: (found[label], want) for label, want in expected.items() if found[label] != want}
+          for label, (got, want) in wrong.items():
+              print(f"❌ {label}:\n   written  {got!r}\n   answered {want!r}")
+          if wrong:
+              raise SystemExit(1)
+          print("✅ every answer was written verbatim")
+          PY

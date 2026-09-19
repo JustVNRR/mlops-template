@@ -1,5 +1,5 @@
 """
-{{ project_name }}.
+{{ project_name | replace('\\', '\\\\') | replace('"', '\\"') }}.
 
 The import name is declared in pyproject.toml.
 """

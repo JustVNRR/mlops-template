@@ -72,7 +72,7 @@ lives under `template/`.
 └── template/       # everything the generated project receives, verbatim
 ```
 
-### Two rules when editing the template
+### Rules when editing the template
 
 1. **A file whose content depends on an answer must be named `*.jinja`.** Copier
    copies every other file byte for byte; only suffixed files are rendered, and
@@ -95,6 +95,16 @@ lives under `template/`.
    the next line of content; when that is not enough, move the guard away from
    the boundary it sits on.
 
+4. **A free-text answer is escaped before it lands in a file that has a syntax
+   of its own.** The answer is free text; `pyproject.toml` and the docstring of
+   `__init__.py` are not. Written raw, `Mr. "Quoted" Project` produced a
+   `pyproject.toml` that nothing could parse — and Copier exited 0 without a
+   word. So an answer goes through
+   `replace('\\', '\\\\') | replace('"', '\\"')` — the backslash first, always —
+   wherever a quote or a backslash would mean something. `package_name`
+   (regex-validated) and `license` (a fixed list of choices) cannot contain
+   either character, so they are injected as they are.
+
 Copier filters `template/` through `.gitignore` — **including the one at the
 repository root**, since its rules apply at every level. That cuts both ways: a
 leftover from a local run (a dataset, a virtualenv) is skipped for free, but a
@@ -110,6 +120,10 @@ and only `.env.sample` was exempted.
 There is nothing to lint, test or build at the root. The CI generates a real
 project from the template and runs lint, tests and the Docker smoke test
 **inside it** — the only validation that means anything here.
+
+One job generates a project from hostile answers — a quote, a backslash, a
+triple quote — and checks that each one comes back verbatim. An escaping bug is
+invisible everywhere else: the other jobs answer with friendly names.
 
 Because of that, changes to the template are checked by pushing a branch and
 reading the CI, not by running `make` locally.
