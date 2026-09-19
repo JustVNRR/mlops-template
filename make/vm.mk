@@ -19,10 +19,11 @@ vm_setup: ## Send and execute the setup script on the VM
 		--project=$(GCP_PROJECT) \
 		--zone=$(ZONE)
 	@echo "⚙️ Executing script on the VM..."
+	@# Plus d'arguments : uv lit .python-version à la racine du repo cloné.
 	gcloud compute ssh $(INSTANCE) \
 		--project=$(GCP_PROJECT) \
 		--zone=$(ZONE) \
-		--command="bash ~/setup_vm.sh $(PYTHON_VERSION) $(VENV_NAME)"
+		--command="bash ~/setup_vm.sh"
 	@echo "🗑️ Cleaning up script on the VM..."
 	gcloud compute ssh $(INSTANCE) \
 		--project=$(GCP_PROJECT) \
