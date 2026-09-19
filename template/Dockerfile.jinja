@@ -41,8 +41,8 @@ USER appuser
 
 # Optional: Uncomment if you have models to ship inside the image.
 # ⚠️ By default the image contains NO model: /predict answers 503 until one is
-#    loaded (through PUT /model, or by implementing MLflow/GCS loading in
-#    ml_logic/registry.py). That is deliberate: a model quickly weighs hundreds
+#    loaded (through PUT /model, or by implementing the loading path of your
+#    registry in ml_logic/registry.py). That is deliberate: a model quickly weighs hundreds
 #    of megabytes, and freezing it into the image forces a rebuild and a redeploy
 #    on every retraining.
 # COPY models models

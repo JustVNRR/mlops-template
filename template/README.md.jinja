@@ -1,8 +1,8 @@
 # 🚀 {{ project_name }}
 
-A Machine Learning project: training, experiment tracking and a serving API{% if 'gcp' in modules %},
-with Google Cloud deployment paths{% endif %} — driven by a Makefile, checked by
-a CI, and **runnable straight away, with no cloud account**.
+A Machine Learning project: training{% if 'mlflow' in modules %}, experiment tracking{% endif %} and a serving
+API{% if 'gcp' in modules %}, with Google Cloud deployment paths{% endif %} — driven by a Makefile,
+checked by a CI, and **runnable straight away, with no cloud account**.
 
 Generated from the
 [mlops-template](https://github.com/JustVNRR/mlops-template) Copier template.
@@ -70,7 +70,7 @@ predictions. Replace the pieces one at a time with your own afterwards (see
 │           ├── data.py        #     loading, cleaning, persistence
 │           ├── preprocessor.py#    scikit-learn transformations
 │           ├── model.py       #     build / train / evaluate
-│           ├── registry.py    #     model lifecycle (local, MLflow)
+│           ├── registry.py    #     model lifecycle (local{% if 'mlflow' in modules %}, MLflow{% endif %})
 │           └── encoders.py    #     a place for your custom encoders
 ├── make/                      # Makefile targets, grouped by domain
 ├── tests/
@@ -330,7 +330,8 @@ it is a **renaming plus a data source**, not a rewrite.
    hyperparameters.
 6. **`api/schemas.py`** — align the input contract with your features. This file
    restates the schema by hand, so keep the two in step.
-7. **`ml_logic/registry.py`** — implement MLflow or GCS loading if you want to
-   move beyond the local registry.
+7. **`ml_logic/registry.py`** — {% if 'mlflow' in modules or 'gcp' in modules %}implement MLflow or
+   GCS loading if you want to move beyond the local registry.{% else %}extend the
+   local registry with the tracking service of your choice.{% endif %}
 8. **Swagger documentation** — the API title and description live in
    `api/fast.py`.
