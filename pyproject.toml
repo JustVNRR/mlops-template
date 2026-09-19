@@ -40,7 +40,7 @@ dependencies = [
 
   # --- Utilities ---
   "python-dotenv>=1.0",
-  "colorama>=0.4",
+  "loguru>=0.7",       # logging: replaces both print() and colorama
   "pygeohash>=1.2",
   "requests>=2.32",
   "python-dateutil>=2.9",

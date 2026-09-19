@@ -1,8 +1,8 @@
 from pathlib import Path
 
 import pandas as pd
-from colorama import Fore, Style
 from google.cloud import bigquery
+from loguru import logger
 
 from package_folder.ml_logic.demo_data import generate_demo_data
 from package_folder.params import (
@@ -32,7 +32,7 @@ def get_raw_data(min_date: str | None = None, max_date: str | None = None) -> pd
     - "bigquery" : query against the project's raw table
     """
     if DATA_SOURCE == "demo":
-        print(Fore.BLUE + "\nGenerating the demonstration dataset..." + Style.RESET_ALL)
+        logger.info("Generating the demonstration dataset...")
         return generate_demo_data()
 
     # --- DATA_SOURCE == "bigquery" ---
@@ -70,10 +70,10 @@ def get_data_with_cache(
     Store at `cache_path` if retrieved from BigQuery for future use.
     """
     if cache_path.is_file():
-        print(Fore.BLUE + "\nLoad data from local CSV..." + Style.RESET_ALL)
+        logger.info("Load data from local CSV...")
         df = pd.read_csv(cache_path, header="infer" if data_has_header else None)
     else:
-        print(Fore.BLUE + "\nLoad data from BigQuery server..." + Style.RESET_ALL)
+        logger.info("Load data from BigQuery server...")
         client = bigquery.Client(project=gcp_project)
         query_job = client.query(query)
         result = query_job.result()
@@ -84,7 +84,7 @@ def get_data_with_cache(
             cache_path.parent.mkdir(parents=True, exist_ok=True)
             df.to_csv(cache_path, header=data_has_header, index=False)
 
-    print(f"✅ Data loaded, with shape {df.shape}")
+    logger.info(f"Data loaded, with shape {df.shape}")
 
     return df
 
@@ -124,7 +124,7 @@ def clean_data(df: pd.DataFrame) -> pd.DataFrame:
         df = df[df[TARGET_COLUMN] > 0]
 
     removed = initial_rows - len(df)
-    print(f"✅ Data cleaned: {len(df)} rows kept, {removed} removed")
+    logger.info(f"Data cleaned: {len(df)} rows kept, {removed} removed")
 
     return df.reset_index(drop=True)
 
@@ -138,7 +138,7 @@ def save_processed_data(df: pd.DataFrame, path: Path | None = None) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(path, index=False)
 
-    print(f"✅ Processed data saved: {path} ({len(df)} rows)")
+    logger.info(f"Processed data saved: {path} ({len(df)} rows)")
     return path
 
 
@@ -165,7 +165,7 @@ def load_data_to_bq(
     """
     assert isinstance(data, pd.DataFrame)
     full_table_name = f"{gcp_project}.{bq_dataset}.{table}"
-    print(Fore.BLUE + f"\nSave data to BigQuery @ {full_table_name}...:" + Style.RESET_ALL)
+    logger.info(f"Save data to BigQuery @ {full_table_name}...")
 
     # Fix column names to BigQuery accepted format (cannot start with a number)
     data.columns = [
@@ -179,10 +179,10 @@ def load_data_to_bq(
     write_mode = "WRITE_TRUNCATE" if truncate else "WRITE_APPEND"
     job_config = bigquery.LoadJobConfig(write_disposition=write_mode)
 
-    print(f"\n{'Write' if truncate else 'Append'} {full_table_name} ({data.shape[0]} rows)")
+    logger.info(f"{'Write' if truncate else 'Append'} {full_table_name} ({data.shape[0]} rows)")
 
     # Load data
     job = client.load_table_from_dataframe(data, full_table_name, job_config=job_config)
     job.result()  # wait for the job to complete
 
-    print(f"✅ Data saved to bigquery, with shape {data.shape}")
+    logger.info(f"Data saved to bigquery, with shape {data.shape}")
