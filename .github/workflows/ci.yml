@@ -160,8 +160,8 @@ jobs:
         if: always()
         run: docker logs api-ci 2>/dev/null || true
 
-  minimal:
-    name: Minimal project (no optional module)
+  reduced:
+    name: Reduced projects
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -231,3 +231,33 @@ jobs:
           uv run ruff format --check .
           uv run pytest
           make run_all
+
+      # The two blocks overlap once: the Artifact Registry targets live in
+      # make/docker.mk because they build an image, but they also need GCP.
+      # Docker without GCP is the combination that catches a wrong condition.
+      - name: Generate a project with Docker but no GCP
+        run: |
+          uvx copier copy --defaults \
+            -d "project_name=Docker Only" \
+            -d "package_name=docker_only" \
+            -d "author_name=$AUTHOR_NAME" \
+            -d "author_email=$AUTHOR_EMAIL" \
+            -d "license=$LICENSE" \
+            -d 'modules=["docker"]' \
+            . "$RUNNER_TEMP/dockeronly"
+
+      - name: Check the docker/gcp overlap is handled
+        working-directory: ${{ runner.temp }}/dockeronly
+        run: |
+          targets=$(make help | sed 's/\x1b\[[0-9;]*m//g')
+          echo "$targets" | grep -q docker_build_local || { echo "❌ the local build target is missing"; exit 1; }
+          echo "$targets" | grep -q test_api_docker   || { echo "❌ the container test target is missing"; exit 1; }
+          if echo "$targets" | grep -qE "artifact_registry|cloudrun|docker_push_prod" ; then
+            echo "❌ a GCP-only target survived in a project without GCP"
+            exit 1
+          fi
+          if [ -e make/gcp.mk ] || [ -e scripts/setup_vm.sh ] ; then
+            echo "❌ a GCP file survived"
+            exit 1
+          fi
+          echo "✅ the docker/gcp overlap is handled"
