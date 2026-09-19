@@ -278,7 +278,7 @@ this order:
 1. **`params.py`** — declare your columns (`NUMERIC_FEATURES`,
    `CATEGORICAL_FEATURES`, `TARGET_COLUMN`), your types (`DTYPES_RAW`) and your
    business thresholds. The rest of the code refers to them.
-2. **`ml_logic/data.py`** — replace `generate_toy_data()` with your real
+2. **`ml_logic/demo_data.py`** — replace `generate_demo_data()` with your real
    loading logic (the TODO in `get_raw_data()` holds the BigQuery query to
    complete), and adapt `clean_data()` to your cleaning rules.
 3. **`ml_logic/preprocessor.py`** — adapt the transformations to your columns.

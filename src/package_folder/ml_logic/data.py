@@ -1,14 +1,13 @@
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 from colorama import Fore, Style
 from google.cloud import bigquery
 
+from package_folder.ml_logic.demo_data import generate_demo_data
 from package_folder.params import (
     ALL_FEATURES,
     BQ_DATASET,
-    DATA_SIZE,
     DATA_SOURCE,
     DTYPES_RAW,
     GCP_PROJECT,
@@ -20,66 +19,6 @@ from package_folder.params import (
 # This is what makes the pipeline steps independent: `make run_train` works
 # even if `make run_preprocess` ran in another shell.
 PROCESSED_DATA_PATH = LOCAL_DATA_PATH / "processed" / "processed.csv"
-
-DAY_NAMES = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
-
-
-# ==============================================================================
-# 🧪 DEMONSTRATION DATASET
-# ==============================================================================
-def _n_samples_from_data_size() -> int:
-    """Translate DATA_SIZE ('1k', '200k', 'all', …) into a row count."""
-    if not DATA_SIZE:
-        return 2_000
-
-    size = str(DATA_SIZE).strip().lower()
-    if size == "all":
-        return 50_000
-    if size.endswith("k"):
-        return int(float(size[:-1]) * 1_000)
-    return int(size)
-
-
-def generate_toy_data(n_samples: int | None = None, seed: int = 42) -> pd.DataFrame:
-    """
-    Generate a synthetic "taxi trip" dataset.
-
-    Purpose: make the template runnable end to end (`make run_all`) without a
-    GCP account and without a data file to version. The relationship is
-    deliberately simple (linear + gaussian noise) so that the reference model
-    reaches a stable MAE, comparable from one run to the next.
-
-    ⚠️ Replace this with your real data source: see `get_raw_data`.
-    """
-    n_samples = n_samples if n_samples is not None else _n_samples_from_data_size()
-    rng = np.random.default_rng(seed)  # reproducible: same data on every run
-
-    distance_km = rng.uniform(0.5, 30.0, n_samples)
-    passengers = rng.integers(1, 5, n_samples)
-    hour = rng.integers(0, 24, n_samples)
-    day_of_week = rng.choice(DAY_NAMES, n_samples)
-
-    is_night = (hour < 6) | (hour >= 22)
-    is_weekend = np.isin(day_of_week, ["saturday", "sunday"])
-
-    fare = (
-        3.0  # base fare
-        + 1.8 * distance_km  # per-kilometre rate
-        + 0.4 * passengers  # passenger surcharge
-        + 2.5 * is_night  # night surcharge
-        + 1.5 * is_weekend  # weekend surcharge
-        + rng.normal(0, 1.5, n_samples)  # irreducible noise
-    )
-
-    return pd.DataFrame(
-        {
-            "distance_km": distance_km,
-            "passengers": passengers,
-            "hour": hour,
-            "day_of_week": day_of_week,
-            TARGET_COLUMN: fare,
-        }
-    )
 
 
 # ==============================================================================
@@ -93,8 +32,8 @@ def get_raw_data(min_date: str | None = None, max_date: str | None = None) -> pd
     - "bigquery" : query against the project's raw table
     """
     if DATA_SOURCE == "toy":
-        print(Fore.BLUE + "\nGenerating toy dataset..." + Style.RESET_ALL)
-        return generate_toy_data()
+        print(Fore.BLUE + "\nGenerating the demonstration dataset..." + Style.RESET_ALL)
+        return generate_demo_data()
 
     # --- DATA_SOURCE == "bigquery" ---
     if not GCP_PROJECT or not BQ_DATASET:

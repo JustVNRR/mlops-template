@@ -2,7 +2,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from package_folder.ml_logic.data import clean_data, generate_toy_data
+from package_folder.ml_logic.data import clean_data
+from package_folder.ml_logic.demo_data import generate_demo_data
 from package_folder.ml_logic.model import build_model, evaluate_model, train_model
 from package_folder.ml_logic.preprocessor import build_preprocessor, preprocess_features
 from package_folder.params import ALL_FEATURES, TARGET_COLUMN
@@ -11,7 +12,7 @@ from package_folder.params import ALL_FEATURES, TARGET_COLUMN
 @pytest.fixture(scope="module")
 def dataset():
     """Clean demonstration dataset, shared by the tests in this module."""
-    df = clean_data(generate_toy_data(400))
+    df = clean_data(generate_demo_data(400))
     return df[ALL_FEATURES], df[TARGET_COLUMN]
 
 
