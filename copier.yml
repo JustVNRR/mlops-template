@@ -28,6 +28,13 @@ _exclude:
   - "{% if 'docker' not in modules %}make/docker.mk{% endif %}"
   - "{% if 'docker' not in modules %}tests/api/test_docker_endpoints.py{% endif %}"
   - "{% if 'docker' not in modules %}.github/workflows/docker.yml{% endif %}"
+  - "{% if 'gcp' not in modules %}make/gcp.mk{% endif %}"
+  - "{% if 'gcp' not in modules %}make/bigquery.mk{% endif %}"
+  - "{% if 'gcp' not in modules %}make/vm.mk{% endif %}"
+  - "{% if 'gcp' not in modules %}make/cloudrun.mk{% endif %}"
+  - "{% if 'gcp' not in modules %}scripts/setup_vm.sh{% endif %}"
+  - "{% if 'gcp' not in modules %}tests/infrastructure/test_gcp_setup.py{% endif %}"
+  - "{% if 'gcp' not in modules %}tests/api/test_cloud_endpoints.py{% endif %}"
 
 _message_after_copy: |
   ✅ Your project is ready.

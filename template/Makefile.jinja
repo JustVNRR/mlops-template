@@ -1,20 +1,20 @@
-# 1. Load the .env file
+# Load the .env file
 -include .env
 
-# 2. Export the variables so they are available to the shell
+# Export the variables so they are available to the shell
 export
 
-# 3. Build the Service Account email dynamically
+{% if 'gcp' in modules %}# Build the Service Account email dynamically
 SA_EMAIL = $(SA_NAME)@$(GCP_PROJECT).iam.gserviceaccount.com
 
-# 4. Import the sub-makefiles (logical MLOps order)
-# include make/local.mk   # Step 1: create the local environment
-# include make/gcp.mk
+{% endif %}# Import the sub-makefiles, in the order they are meant to be run
+# include make/local.mk   # create the local environment
+{% if 'gcp' in modules %}# include make/gcp.mk
 # include make/bigquery.mk
 # include make/vm.mk
-# include make/docker.mk
-# include make/cloudrun.mk
-# include make/pipeline.mk
+{% endif %}{% if 'docker' in modules %}# include make/docker.mk
+{% endif %}{% if 'gcp' in modules %}# include make/cloudrun.mk
+{% endif %}# include make/pipeline.mk
 # include make/github.mk
 # include make/tests.mk
 include make/*.mk

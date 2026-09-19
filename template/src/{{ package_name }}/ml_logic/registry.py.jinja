@@ -121,19 +121,19 @@ def save_results(params: dict | None = None, metrics: dict | None = None) -> Non
 def save_model(model: Any) -> None:
     """
     Persist trained model locally on the hard drive.
-    - if MODEL_TARGET='gcs', also persist it in the GCS bucket
-    - if MODEL_TARGET='mlflow', also persist it on MLflow
+{% if 'gcp' in modules %}    - if MODEL_TARGET='gcs', also persist it in the GCS bucket
+{% endif %}    - if MODEL_TARGET='mlflow', also persist it on MLflow
     """
     # The target is validated BEFORE anything is written: otherwise a model
     # would be left on disk while an exception is raised, producing a partial
     # success that is very hard to diagnose.
-    if MODEL_TARGET == "gcs":
+{% if 'gcp' in modules %}    if MODEL_TARGET == "gcs":
         raise NotImplementedError(
             "❌ MODEL_TARGET='gcs': uploading to Cloud Storage is not implemented.\n"
             "   → Implement it here (google.cloud.storage), or set MODEL_TARGET=local in your .env."
         )
 
-    if MODEL_TARGET == "mlflow":
+{% endif %}    if MODEL_TARGET == "mlflow":
         raise NotImplementedError(
             "❌ MODEL_TARGET='mlflow': logging the model is not implemented.\n"
             "   → Uncomment the mlflow.<framework>.log_model block below, or set MODEL_TARGET=local in your .env."
@@ -166,8 +166,8 @@ def load_model(stage: str = DEFAULT_ALIAS) -> Any | None:
     """
     Return a saved model:
     - locally the most recent one (by modification time)
-    - or from GCS (most recent one) if MODEL_TARGET == 'gcs'
-    - or from MLflow, by alias, if MODEL_TARGET == 'mlflow'
+{% if 'gcp' in modules %}    - or from GCS (most recent one) if MODEL_TARGET == 'gcs'
+{% endif %}    - or from MLflow, by alias, if MODEL_TARGET == 'mlflow'
 
     `stage` is a legacy parameter name: it designates the MLflow ALIAS (see
     mlflow_set_alias).
@@ -184,13 +184,13 @@ def load_model(stage: str = DEFAULT_ALIAS) -> Any | None:
         with open(model_path, "rb") as file:
             return pickle.load(file)
 
-    if MODEL_TARGET == "gcs":
+{% if 'gcp' in modules %}    if MODEL_TARGET == "gcs":
         raise NotImplementedError(
             "❌ MODEL_TARGET='gcs': downloading from Cloud Storage is not implemented.\n"
             "   → Implement it here (google.cloud.storage), or set MODEL_TARGET=local in your .env."
         )
 
-    if MODEL_TARGET == "mlflow":
+{% endif %}    if MODEL_TARGET == "mlflow":
         raise NotImplementedError(
             "❌ MODEL_TARGET='mlflow': loading from MLflow is not implemented.\n"
             "   → Use mlflow.<framework>.load_model with the alias, or set MODEL_TARGET=local in your .env."

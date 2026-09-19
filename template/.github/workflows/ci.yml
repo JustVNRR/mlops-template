@@ -59,8 +59,8 @@ jobs:
 
       # The .env is git-ignored, hence absent from a runner: start from the
       # template, exactly as a new user would. Every variable has a default, and
-      # the tests requiring an external service (GCP, container, deployed API)
-      # are excluded by the `integration` marker.
+      # the tests requiring a real external service are excluded by the
+      # `integration` marker.
       - name: Create .env from the template
         run: cp .env.sample .env
 

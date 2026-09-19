@@ -12,7 +12,7 @@ WORKDIR /api
 #   UV_COMPILE_BYTECODE : pre-compile .pyc for faster cold starts
 #   UV_LINK_MODE=copy   : cache and target live on different layers, hardlinks
 #                         are not possible there
-#   PYTHONUNBUFFERED    : logs reach Cloud Run immediately, not on container exit
+#   PYTHONUNBUFFERED    : logs reach the platform immediately, not on exit
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
     UV_PROJECT_ENVIRONMENT=/api/.venv \

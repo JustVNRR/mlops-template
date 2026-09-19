@@ -23,7 +23,7 @@ def preprocess(min_date: str | None = None, max_date: str | None = None) -> None
     """
     Load the raw data, clean it, and persist it for the following steps.
 
-    `min_date` / `max_date` only matter for the BigQuery source; the
+    `min_date` / `max_date` only matter for a queryable source; the
     demonstration dataset ignores them. Keeping them optional lets
     `make run_preprocess` run without arguments, while still allowing the
     Prefect workflow to target a specific period.
