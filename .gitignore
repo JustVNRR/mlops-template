@@ -74,8 +74,12 @@ training_outputs/
 *.h5
 *.pkl
 *.model
-# Dossiers locaux créés par MLflow ou Prefect
+# Artefacts locaux créés par MLflow ou Prefect.
+# MLflow 2 utilisait un simple dossier (mlruns/) ; MLflow 3 crée par défaut une
+# base SQLite (mlflow.db) — avec ses fichiers WAL/SHM associés.
 mlruns/
+mlflow.db
+mlflow.db-*
 .prefect/
 
 # ==============================================================================

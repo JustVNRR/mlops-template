@@ -1,97 +1,71 @@
-import numpy as np
-from typing import Tuple, Any
+from typing import Any
 
-# Generic type alias to accommodate Scikit-Learn, Keras, PyTorch, or XGBoost models
+import numpy as np
+import pandas as pd
+from sklearn.linear_model import Ridge
+from sklearn.metrics import mean_absolute_error, root_mean_squared_error
+from sklearn.pipeline import Pipeline
+
+from package_folder.ml_logic.preprocessor import build_preprocessor
+
+# Alias générique : le template accepte n'importe quel estimateur exposant
+# .fit() / .predict() (scikit-learn, XGBoost, un modèle Keras…).
 Model = Any
 
-def build_model(input_shape: tuple = None,    # for DL: ignored if ML (can be removed)
-                learning_rate: float = 0.0005, # for DL: ignored if ML (can be removed)
-                **kwargs) -> Model:
+
+def build_model(alpha: float = 1.0, **kwargs) -> Pipeline:
     """
     Instantiate the model.
     (For neural networks, this includes initializing weights and compiling).
+
+    ⚠️ Le modèle renvoyé est un Pipeline scikit-learn COMPLET : préprocesseur
+    + estimateur. C'est ce qui garantit qu'à la prédiction, les features
+    subissent exactement la même transformation qu'à l'entraînement. Un modèle
+    sérialisé sans son préprocesseur prédit faux, sans jamais lever d'erreur.
+
+    TODO: remplace Ridge par ton estimateur (RandomForestRegressor, XGBoost,
+    un réseau Keras…). Le reste du pipeline n'a pas à changer : `**kwargs`
+    transmet les hyperparamètres depuis `train()`.
     """
-    # TODO: Implement build_model
-    # Example for Scikit-Learn:
-    # model = RandomForestRegressor(max_depth=kwargs.get("max_depth", 5))
-    # return model
-
-    # Example for DL with tensorflow:
-    # 1. Initialization
-    # model = models.Sequential()
-    # model.add(layers.Dense(32, activation='relu', input_shape=input_shape))
-    # model.add(layers.Dense(1, activation='linear'))
-
-    # # 2. Compilation
-    # optimizer = optimizers.Adam(learning_rate=learning_rate)
-    # model.compile(loss='mse', optimizer=optimizer, metrics=['mae'])
-
-    raise NotImplementedError("build_model is not implemented yet.")
+    return Pipeline(
+        steps=[
+            ("preprocessor", build_preprocessor()),
+            ("regressor", Ridge(alpha=alpha, **kwargs)),
+        ]
+    )
 
 
 def train_model(
-        model: Model,
-        X: np.ndarray,
-        y: np.ndarray,
-        batch_size: int = 256,    # for DL : ignored if ML (can be removed)
-        patience: int = 2,        # for DL : ignored if ML (can be removed)
-        **kwargs
-    ) -> Tuple[Model, dict]:
+    model: Model,
+    X: pd.DataFrame,
+    y: pd.Series,
+    **kwargs,
+) -> tuple[Model, dict]:
     """
     Fit the model and return a tuple (fitted_model, history_or_metrics).
     """
-    # TODO: Implement train_model
-    # Example for ML with Scikit-Learn:
-    # model.fit(X, y)
-    # return model, {}
+    model.fit(X, y)
 
-    # Example for DL with tensorflow:
-    # es = callbacks.EarlyStopping(
-    #     monitor="val_loss",
-    #     patience=patience,
-    #     restore_best_weights=True
-    # )
-
-    # history = model.fit(
-    #     X, y,
-    #     validation_split=0.3,
-    #     epochs=100,
-    #     batch_size=batch_size,
-    #     callbacks=[es],
-    #     verbose=1
-    # )
-
-    # # Keras renvoie un objet History. On extrait le dictionnaire de métriques pour MLflow
-    # return model, history.history
-
-    raise NotImplementedError("train_model is not implemented yet.")
+    # scikit-learn n'expose pas d'historique d'entraînement (contrairement à
+    # Keras, dont `history.history` serait renvoyé ici).
+    return model, {}
 
 
 def evaluate_model(
-        model: Model,
-        X: np.ndarray,
-        y: np.ndarray,
-        batch_size: int = 64,    # for DL : ignored if ML (can be removed)
-        **kwargs
-    ) -> dict:
+    model: Model,
+    X: pd.DataFrame,
+    y: pd.Series,
+    **kwargs,
+) -> dict:
     """
     Evaluate trained model performance on the dataset.
     Returns a dictionary of metrics.
     """
-    # TODO: Implement evaluate_model
-    # Example for Scikit-Learn:
-    # y_pred = model.predict(X)
-    # mae = mean_absolute_error(y, y_pred)
-    # return {"mae": mae}
+    y_pred = model.predict(X)
 
-    # Example for DL with tensorflow:
-    # metrics = model.evaluate(X, y, batch_size=batch_size, verbose=0)
-
-    # # model.evaluate retourne une liste [loss, metric1, metric2...]
-    # # On la transforme en dictionnaire propre
-    # return {
-    #     "loss": metrics[0],
-    #     "mae": metrics[1]
-    # }
-
-    raise NotImplementedError("evaluate_model is not implemented yet.")
+    # float() explicite : scikit-learn renvoie des np.float64, que json.dump
+    # refuse (voir registry._to_jsonable, qui les convertit de toute façon).
+    return {
+        "mae": float(mean_absolute_error(y, y_pred)),
+        "rmse": float(root_mean_squared_error(y, y_pred)),
+    }

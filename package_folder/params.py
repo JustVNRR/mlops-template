@@ -61,12 +61,30 @@ def _int(name: str, default: int | None = None) -> int | None:
         ) from None
 
 
+def _float(name: str, default: float | None = None) -> float | None:
+    """Lire un réel, avec le même traitement d'erreur que `_int`."""
+    raw = os.environ.get(name)
+    if raw is None or not raw.strip():
+        return default
+    try:
+        return float(raw)
+    except ValueError:
+        raise ValueError(
+            f"❌ {name} doit être un nombre, reçu : {raw!r}\n"
+            f"   → Corrige {name} dans ton fichier .env."
+        ) from None
+
+
 ##################  VARIABLES  ##################
 
 # --- Pipeline ---
 DATA_SIZE = _optional("DATA_SIZE")
 CHUNK_SIZE = _int("CHUNK_SIZE", 100_000)
 MODEL_TARGET = (_optional("MODEL_TARGET") or "local").lower()
+# Source des données brutes :
+#   "toy"      → jeu synthétique généré en mémoire (aucun compte cloud requis)
+#   "bigquery" → requête sur BigQuery (nécessite GCP_PROJECT et BQ_DATASET)
+DATA_SOURCE = (_optional("DATA_SOURCE") or "toy").lower()
 
 # --- Infrastructure GCP ---
 GCP_PROJECT = _optional("GCP_PROJECT")
@@ -95,6 +113,7 @@ NOTIFY_AUTHOR = _optional("NOTIFY_AUTHOR")
 
 ##################  VALIDATIONS  ##################
 VALID_MODEL_TARGETS = ("local", "gcs", "mlflow")
+VALID_DATA_SOURCES = ("toy", "bigquery")
 
 if MODEL_TARGET not in VALID_MODEL_TARGETS:
     raise NameError(
@@ -103,17 +122,39 @@ if MODEL_TARGET not in VALID_MODEL_TARGETS:
         f"   → Corrige MODEL_TARGET dans ton fichier .env ('local' est un bon défaut)."
     )
 
-##################  DATA SCHEMA (TODO)  #################
-# TODO: Define the exact column names of the raw dataset (required for BigQuery schema or CSV parsing).
-# COLUMN_NAMES_RAW = ['feature_1', 'feature_2', 'target_variable']
+if DATA_SOURCE not in VALID_DATA_SOURCES:
+    raise NameError(
+        f"❌ DATA_SOURCE invalide : {DATA_SOURCE!r}\n"
+        f"   Valeurs acceptées : {', '.join(VALID_DATA_SOURCES)}\n"
+        f"   → Corrige DATA_SOURCE dans ton fichier .env ('toy' ne requiert aucun compte cloud)."
+    )
 
-# TODO: Enforce raw data types to optimize memory usage (e.g., use float32 instead of float64).
-# DTYPES_RAW = {
-#     "feature_1": "float32",
-#     "feature_2": "int8",
-#     "target_variable": "int8"
-# }
+##################  DATA SCHEMA  #################
+# Schéma du jeu de données de DÉMONSTRATION (voir ml_logic/data.generate_toy_data).
+#
+# ⚠️ À REMPLACER par les colonnes de ton propre dataset. Ces constantes sont
+#    utilisées par le nettoyage, le préprocesseur et les tests d'intégration :
+#    les changer ici suffit à réorienter tout le pipeline.
+TARGET_COLUMN = "fare"
 
-# TODO: Define the final data type for the matrices after preprocessing.
-# (import numpy as np to use np.float32)
-# DTYPES_PROCESSED = None
+NUMERIC_FEATURES = ["distance_km", "passengers", "hour"]
+CATEGORICAL_FEATURES = ["day_of_week"]
+ALL_FEATURES = NUMERIC_FEATURES + CATEGORICAL_FEATURES
+
+COLUMN_NAMES_RAW = ALL_FEATURES + [TARGET_COLUMN]
+
+# Types imposés au chargement : réduit l'empreinte mémoire et fait échouer
+# immédiatement un fichier dont le schéma a changé.
+DTYPES_RAW = {
+    "distance_km": "float32",
+    "passengers": "int8",
+    "hour": "int8",
+    "day_of_week": "category",
+    "fare": "float32",
+}
+
+##################  SEUILS MÉTIER  #################
+# MAE en dessous de laquelle un modèle est jugé acceptable par le workflow de
+# promotion (voir interface/workflow.py). Paramétrable par .env : un objectif
+# de qualité change souvent sans que le code, lui, doive changer.
+MAE_THRESHOLD = _float("MAE_THRESHOLD", 3.0)
