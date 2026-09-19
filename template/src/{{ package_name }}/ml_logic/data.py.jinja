@@ -1,16 +1,16 @@
 from pathlib import Path
 
 import pandas as pd
-{% if 'gcp' in modules %}from google.cloud import bigquery
+{% if with_gcp %}from google.cloud import bigquery
 {% endif %}from loguru import logger
 
 from {{ package_name }}.ml_logic.demo_data import generate_demo_data
 from {{ package_name }}.params import (
     ALL_FEATURES,
-{% if 'gcp' in modules %}    BQ_DATASET,
+{% if with_gcp %}    BQ_DATASET,
 {% endif %}    DATA_SOURCE,
     DTYPES_RAW,
-{% if 'gcp' in modules %}    GCP_PROJECT,
+{% if with_gcp %}    GCP_PROJECT,
 {% endif %}    LOCAL_DATA_PATH,
     TARGET_COLUMN,
 )
@@ -29,12 +29,12 @@ def get_raw_data(min_date: str | None = None, max_date: str | None = None) -> pd
     Load raw data from the source configured by DATA_SOURCE.
 
     - "demo"     : synthetic dataset, no network access (default)
-{% if 'gcp' in modules %}    - "bigquery" : query against the project's raw table
+{% if with_gcp %}    - "bigquery" : query against the project's raw table
 {% endif %}    """
     if DATA_SOURCE == "demo":
         logger.info("Generating the demonstration dataset...")
         return generate_demo_data()
-{% if 'gcp' in modules %}
+{% if with_gcp %}
     # --- DATA_SOURCE == "bigquery" ---
     if not GCP_PROJECT or not BQ_DATASET:
         raise ValueError(

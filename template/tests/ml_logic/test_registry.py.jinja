@@ -137,7 +137,7 @@ def test_save_results_accepts_partial_payloads(local_registry):
 
 # Targets that this project cannot serve: the building block providing them was
 # left out at generation time.
-UNIMPLEMENTED_TARGETS = [{% if 'gcp' in modules %}"gcs", {% endif %}{% if 'mlflow' in modules %}"mlflow"{% endif %}]
+UNIMPLEMENTED_TARGETS = [{% if with_gcp %}"gcs", {% endif %}{% if with_mlflow %}"mlflow"{% endif %}]
 
 
 def test_save_model_raises_on_unimplemented_target(local_registry, monkeypatch):

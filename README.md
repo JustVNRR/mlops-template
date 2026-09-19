@@ -58,11 +58,17 @@ sections simply are not there — not commented out, absent.
 | `prefect` | orchestration of the full retraining cycle | `interface/workflow.py` in its entirety, `make run_workflow` |
 | `docker` | packaging the API as an image | the `Dockerfile`, `docker-compose.yml`, `make/docker.mk`, the Docker CI workflow |
 
-Every combination is meant to work. Only two are checked by the CI: the full
-project and a project with no block at all.
+Every combination is meant to work, and `tests/test_project.py` tries all
+sixteen of them.
 
-`gcp` and `docker` overlap once: publishing an image to Artifact Registry needs
-both, so those targets live in `make/docker.mk` under a `gcp` condition.
+`gcp` and `docker` overlap, and in one direction the overlap is forced:
+Cloud Run deploys an image that only `make/docker.mk` knows how to build, so
+**ticking `gcp` ticks `docker` too** — otherwise the project ships a
+`cloudrun_deploy` target whose image nothing can ever produce. The answers file
+still records what was ticked; only the flags the template is rendered with
+differ, and the closing message says so. Publishing an image to Artifact
+Registry needs both blocks as well, which is why those targets live in
+`make/docker.mk` under a `gcp` condition.
 
 ## 🗂️ This repository
 
@@ -112,6 +118,13 @@ package and nothing to run. Everything a generated project receives lives under
    wherever a quote or a backslash would mean something. `package_name`
    (regex-validated) and `license` (a fixed list of choices) cannot contain
    either character, so they are injected as they are.
+
+5. **A condition tests a computed flag, never the answer list.** `{% if with_gcp %}`
+   rather than `{% if 'gcp' in modules %}`; the four flags are derived at the
+   bottom of `copier.yml`. The two are not interchangeable — `modules` is what
+   was ticked, the flags are what the project is built with, and they differ
+   the moment one block implies another, which is precisely what `with_docker`
+   exists for. A file written against the list silently misses that.
 
 Copier filters `template/` through `.gitignore` — **including the one at the
 repository root**, since its rules apply at every level. That cuts both ways: a

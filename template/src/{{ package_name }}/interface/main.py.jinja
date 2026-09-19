@@ -12,7 +12,7 @@ from {{ package_name }}.ml_logic.model import build_model, evaluate_model, train
 from {{ package_name }}.ml_logic.registry import (
     DEFAULT_ALIAS,
     load_model,
-{% if 'mlflow' in modules %}    mlflow_run,
+{% if with_mlflow %}    mlflow_run,
 {% endif %}    save_model,
     save_results,
 )
@@ -37,7 +37,7 @@ def preprocess(min_date: str | None = None, max_date: str | None = None) -> None
     logger.info("preprocess() done")
 
 
-{% if 'mlflow' in modules %}@mlflow_run
+{% if with_mlflow %}@mlflow_run
 {% endif %}def train(
     min_date: str | None = None,
     max_date: str | None = None,
@@ -90,7 +90,7 @@ def preprocess(min_date: str | None = None, max_date: str | None = None) -> None
     return metrics["mae"]
 
 
-{% if 'mlflow' in modules %}@mlflow_run
+{% if with_mlflow %}@mlflow_run
 {% endif %}def evaluate(
     min_date: str | None = None,
     max_date: str | None = None,

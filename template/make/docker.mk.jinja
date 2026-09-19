@@ -13,7 +13,7 @@ docker_run_local: ## Run the local Docker container on port 8080
 	@echo "👉 Go to http://localhost:8080"
 	docker run -it -e PORT=8000 -p 8080:8000 $(GAR_IMAGE):dev
 
-{% if 'gcp' in modules %}artifact_registry_create: ## Create the Docker repository in Artifact Registry
+{% if with_gcp %}artifact_registry_create: ## Create the Docker repository in Artifact Registry
 	@echo "📦 Creating Artifact Registry repository $(ARTIFACTSREPO)..."
 	gcloud artifacts repositories create $(ARTIFACTSREPO) \
 		--repository-format=docker \

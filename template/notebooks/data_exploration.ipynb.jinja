@@ -43,7 +43,7 @@
    "source": [
     "# `get_raw_data()` dispatches on DATA_SOURCE. Out of the box it returns the\n",
     "# demonstration dataset, so this notebook runs with no account and no data file.\n",
-{% if 'gcp' in modules %}    "# Set DATA_SOURCE=bigquery in .env to read from your own table instead.\n",
+{% if with_gcp %}    "# Set DATA_SOURCE=bigquery in .env to read from your own table instead.\n",
 {% endif %}    "raw = get_raw_data()\n",
     "raw.shape"
    ]

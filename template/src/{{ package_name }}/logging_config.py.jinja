@@ -17,7 +17,7 @@ from {{ package_name }}.params import LOG_LEVEL
 
 # Loggers that would otherwise keep their own handlers and formatting. uvicorn
 # installs several, and turns propagation off on them.
-{% if 'mlflow' in modules %}#
+{% if with_mlflow %}#
 # MLflow is deliberately absent. It installs its own StreamHandler when imported,
 # and that import happens after this module has run, so whatever is set here gets
 # replaced. Its autolog lines therefore keep MLflow's format. Overriding that
@@ -27,7 +27,7 @@ from {{ package_name }}.params import LOG_LEVEL
     "uvicorn",
     "uvicorn.error",
     "uvicorn.access",
-{% if 'prefect' in modules %}    "prefect",
+{% if with_prefect %}    "prefect",
 {% endif %})
 
 _configured = False
