@@ -10,20 +10,24 @@
 
 _subdirectory: template
 
-# Copier copies the tree exactly as it finds it: it does NOT filter through
-# .gitignore. Without these entries, whatever a local test run left behind — a
-# dataset, a pickled model, a virtualenv — would be shipped to every generated
-# project. `_exclude` is the only filter that exists.
+# Copier already filters `template/` through .gitignore, so the leftovers of a
+# local run — a dataset, a virtualenv, a .pkl — are skipped anyway. These
+# entries cover what .gitignore does NOT: the runtime directories under
+# `models/`, which nothing tracks and therefore nothing ignores, and the
+# optional building blocks.
 _exclude:
-  - data/
-  - logs/
-  - mlruns/
-  - .venv/
   - models/models/
   - models/params/
   - models/metrics/
-  - "**/__pycache__/"
-  - "**/*.pyc"
+  # Optional building blocks, removed by the `modules` answer. The pattern is
+  # matched against the path as it will land in the project — so the templates
+  # suffix is NOT part of it: `Dockerfile` matches `Dockerfile.jinja` too.
+  - "{% if 'docker' not in modules %}Dockerfile{% endif %}"
+  - "{% if 'docker' not in modules %}.dockerignore{% endif %}"
+  - "{% if 'docker' not in modules %}docker-compose.yml{% endif %}"
+  - "{% if 'docker' not in modules %}make/docker.mk{% endif %}"
+  - "{% if 'docker' not in modules %}tests/api/test_docker_endpoints.py{% endif %}"
+  - "{% if 'docker' not in modules %}.github/workflows/docker.yml{% endif %}"
 
 _message_after_copy: |
   ✅ Your project is ready.
@@ -86,3 +90,26 @@ license:
     - Apache-2.0
     - BSD-3-Clause
   default: Proprietary
+
+modules:
+  type: str
+  multiselect: true
+  help: |
+    The optional building blocks to include — space toggles, enter confirms.
+    Leave them all on to get the full project; drop the ones you do not need.
+
+      gcp      BigQuery, Cloud Storage, a training VM, Cloud Run deployment
+      mlflow   experiment tracking and model registry
+      prefect  orchestration of the pipeline
+      docker   packaging the API as a container image (used by the GCP path
+               to build the image Cloud Run deploys)
+  choices:
+    - gcp
+    - mlflow
+    - prefect
+    - docker
+  default:
+    - gcp
+    - mlflow
+    - prefect
+    - docker

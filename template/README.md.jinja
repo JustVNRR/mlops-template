@@ -15,12 +15,12 @@ Generated from the
 |---|---|---|
 | **GNU make** | Every project command goes through it | `sudo apt install make` (preinstalled on macOS) |
 | **uv** | Python environments and dependencies | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
-| **Docker** | Step 2 of the API tests, and the image build | [Docker Desktop](https://www.docker.com/products/docker-desktop/) |
-| **git** | Obviously | — |
+{% if 'docker' in modules %}| **Docker** | Step 2 of the API tests, and the image build | [Docker Desktop](https://www.docker.com/products/docker-desktop/) |
+{% endif %}| **git** | Obviously | — |
 | **gcloud CLI** | *Optional* — only for GCP | [Install](https://cloud.google.com/sdk/docs/install) |
 
-> **On Windows: use WSL2.** This project is *nix-first (make, bash, sed, Docker,
-> Ubuntu CI). In a native Git Bash terminal, `make` and `uv` are not installed by
+> **On Windows: use WSL2.** This project is *nix-first (make, bash, sed, Ubuntu
+> CI). In a native Git Bash terminal, `make` and `uv` are not installed by
 > default and the initialisation scripts do not work. Run `wsl --install`, then
 > work from `/mnt/c/...` or — better — clone into the Linux filesystem.
 
@@ -39,8 +39,9 @@ make run_all                   # preprocess -> train -> evaluate -> predict
 make run_api                   # the API starts on http://127.0.0.1:8000
 ```
 
-Commit the `uv.lock` that `uv sync` just generated: the Dockerfile and the CI
-install with `uv sync --frozen`, which fails without it.
+Commit the `uv.lock` that `uv sync` just generated: the CI installs with
+`uv sync --frozen`, which fails without it{% if 'docker' in modules %}, and so
+does the `Dockerfile`{% endif %}.
 
 `make run_all` works with **no cloud account at all**: the project ships with a
 synthetic dataset, trains a reference scikit-learn model and produces
@@ -72,13 +73,15 @@ predictions. Replace the pieces one at a time with your own afterwards (see
 │           └── encoders.py    #     a place for your custom encoders
 ├── make/                      # Makefile targets, grouped by domain
 ├── tests/
-│   ├── api/                   #   the 3 tiers (local, docker, cloud)
+│   ├── api/                   #   the validation tiers (local, cloud{% if 'docker' in modules %}, docker{% endif %})
 │   ├── ml_logic/              #   unit tests of the pipeline
 │   └── infrastructure/        #   GCP setup checks
 ├── notebooks/                 # exploration + API usage
 ├── models/                    # local registry (git-ignored)
 ├── scripts/                   # VM provisioning
-├── .github/workflows/ci.yml   # CI: lint, tests, Docker build
+{% if 'docker' in modules %}├── Dockerfile                 # the API image
+├── docker-compose.yml         # local container, hot-reloaded
+{% endif %}├── .github/workflows/       # CI: lint, tests{% if 'docker' in modules %}, Docker build{% endif %}
 ├── pyproject.toml             # dependencies, ruff, pytest
 └── uv.lock                    # locked versions (generated, committed)
 ```
@@ -163,28 +166,28 @@ Interactive documentation: <http://127.0.0.1:8000/docs>.
 exact cause, instead of failing the container at startup. That is what makes it
 deployable and testable independently of training.
 
-### The 3 validation tiers
+### The validation tiers
 
 Each tier catches what the previous one cannot see:
 
 ```bash
-# 1. In memory: logic and API contract
+# In memory: logic and API contract
 make test_api_local
 
-# 2. Inside the container: missing dependencies, broken image
+{% if 'docker' in modules %}# Inside the container: missing dependencies, broken image
 make docker_build_local
 make docker_run_local
 make test_api_docker
 
-# 3. In production: the actually deployed URL
+{% endif %}# In production: the actually deployed URL
 make test_api_cloud
 ```
 
 ### Tests
 
 ```bash
-make test_all            # default run: 47 tests, no service required
-make test_integration    # the 18 tests needing GCP / Docker / a deployed API
+make test_all            # default run: no service required
+make test_integration    # the tests needing a real external service
 make lint                # ruff check
 make format              # ruff format
 ```
@@ -219,9 +222,9 @@ make iam_setup_service_account
 ### API in production
 
 ```bash
-make docker_build_prod      # linux/amd64 image
+{% if 'docker' in modules %}make docker_build_prod      # linux/amd64 image
 make docker_push_prod       # to Artifact Registry
-make cloudrun_deploy        # to Cloud Run
+{% endif %}make cloudrun_deploy        # to Cloud Run
 make cloudrun_url           # fetch the URL for SERVICE_URL
 ```
 
@@ -229,16 +232,18 @@ make cloudrun_url           # fetch the URL for SERVICE_URL
 
 ## 🔁 Continuous integration
 
-`.github/workflows/ci.yml` runs on every push and has three jobs:
+`.github/workflows/` runs on every push:
 
-| Job | Checks |
-|---|---|
-| **Lint** | `ruff check` + `ruff format --check` |
-| **Tests** | The 47 tests, with no secrets (the `.env` is recreated from `.env.sample`) |
-| **Docker** | The image builds **and** the API actually answers inside the container |
-
-The Docker job is the only place where the `Dockerfile` is validated
-automatically — handy when step 2 of the API tests is not run locally.
+| Workflow | Job | Checks |
+|---|---|---|
+| `ci.yml` | **Lint** | `ruff check` + `ruff format --check` |
+| `ci.yml` | **Tests** | The tests, with no secrets (the `.env` is recreated from `.env.sample`) |
+{% if 'docker' in modules %}| `docker.yml` | **Docker** | The image builds **and** the API actually answers inside the container |
+{% endif %}
+{% if 'docker' in modules %}The Docker workflow is the only place where the `Dockerfile` is validated
+automatically — handy when the container tier of the API tests is not run
+locally.{% else %}Both workflows run with no secrets at all: that is what lets a public
+fork stay green.{% endif %}
 
 ---
 

@@ -57,10 +57,15 @@ lives under `template/`.
    (`{{.Ports}}`) are perfectly valid inside un-suffixed files, and Jinja would
    choke on them. This is why the shipped CI workflow carries no suffix.
 
-Copier does **not** read `.gitignore`: whatever sits under `template/` ships,
-unless it matches `_exclude` in `copier.yml`. That list exists so a dataset, a
-pickled model or a virtualenv left behind by a local test run never reaches a
-generated project.
+Copier filters `template/` through `.gitignore` — **including the one at the
+repository root**, since its rules apply at every level. That cuts both ways: a
+leftover from a local run (a dataset, a virtualenv) is skipped for free, but a
+file you *want* to ship must not match an ignore rule. This is exactly how
+`.env.sample.jinja` disappeared once: `template/.gitignore` ignored `.env.*`,
+and only `.env.sample` was exempted.
+
+`_exclude` in `copier.yml` covers the rest: the runtime directories under
+`models/`, which no ignore rule mentions, and the optional building blocks.
 
 ## ✅ How this repository is validated
 
