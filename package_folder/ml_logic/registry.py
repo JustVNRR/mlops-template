@@ -1,40 +1,116 @@
-import glob
-import os
-import time
+import functools
+import json
 import pickle
+import time
+from pathlib import Path
+from typing import Any
 
-from colorama import Fore, Style
-from google.cloud import storage
 import mlflow
+import numpy as np
+from colorama import Fore, Style
 from mlflow.tracking import MlflowClient
 
-# TODO: Replace "package_name" with the actual dynamic package name,
-# or use relative imports (e.g., from .params import *)
-from package_folder.params import *
+from package_folder.params import (
+    LOCAL_REGISTRY_PATH,
+    MLFLOW_EXPERIMENT,
+    MLFLOW_MODEL_NAME,
+    MLFLOW_TRACKING_URI,
+    MODEL_TARGET,
+)
 
-def save_results(params: dict, metrics: dict) -> None:
+# ==============================================================================
+# 🗂️ ARBORESCENCE DU REGISTRE LOCAL
+# ==============================================================================
+#   models/                  <- LOCAL_REGISTRY_PATH
+#   ├── models/              <- poids des modèles, horodatés <timestamp>.pkl
+#   ├── params/              <- hyperparamètres,      <timestamp>.json
+#   └── metrics/             <- métriques,            <timestamp>.json
+#
+# Le dossier est créé automatiquement à la première sauvegarde : rien à faire
+# à la main, et le pipeline fonctionne sur un clone frais.
+MODELS_DIR = LOCAL_REGISTRY_PATH / "models"
+PARAMS_DIR = LOCAL_REGISTRY_PATH / "params"
+METRICS_DIR = LOCAL_REGISTRY_PATH / "metrics"
+
+# Alias MLflow désignant le modèle servi en production (voir plus bas).
+DEFAULT_ALIAS = "champion"
+
+
+# ==============================================================================
+# 🛠️ HELPERS
+# ==============================================================================
+def _to_jsonable(obj: Any) -> Any:
+    """
+    Convertit récursivement les types numpy (et Path) en types Python natifs.
+
+    Indispensable : un `metrics` calculé par scikit-learn contient des
+    `np.float64`, que `json.dump` refuse avec un laconique
+    "Object of type float64 is not JSON serializable".
+    """
+    if isinstance(obj, dict):
+        return {str(k): _to_jsonable(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple, set)):
+        return [_to_jsonable(v) for v in obj]
+    if isinstance(obj, np.generic):
+        return obj.item()          # np.float64 -> float, np.int64 -> int
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    if isinstance(obj, Path):
+        return str(obj)
+    return obj
+
+
+def _write_json(path: Path, payload: dict) -> None:
+    """Écrire un JSON lisible (indenté), en créant l'arborescence au besoin."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as file:
+        json.dump(_to_jsonable(payload), file, indent=2, ensure_ascii=False)
+    print(f"✅ Saved: {path}")
+
+
+def _latest_file(directory: Path, pattern: str = "*") -> Path | None:
+    """
+    Renvoyer le fichier le plus RÉCEMMENT MODIFIÉ correspondant à `pattern`.
+
+    On trie par date de modification, jamais par nom. Un tri alphabétique
+    (l'ancien `sorted(paths)[-1]`) sélectionne 'zzz.pkl' plutôt que le dernier
+    entraînement, et devient silencieusement faux dès qu'un fichier ne suit pas
+    la convention <timestamp>.pkl — par exemple un `best_model.pkl`.
+    """
+    if not directory.is_dir():
+        return None
+
+    files = [path for path in directory.glob(pattern) if path.is_file()]
+    if not files:
+        return None
+
+    return max(files, key=lambda path: path.stat().st_mtime)
+
+
+# ==============================================================================
+# 💾 SAUVEGARDE
+# ==============================================================================
+def save_results(params: dict | None = None, metrics: dict | None = None) -> None:
     """
     Persist params & metrics locally on the hard drive.
     If MODEL_TARGET='mlflow', also persist them on MLflow.
     """
     timestamp = time.strftime("%Y%m%d-%H%M%S")
 
-    # 1. Save locally
+    # 1. Sauvegarde locale en JSON.
+    #    L'ancienne version utilisait pickle : illisible à l'œil, non diffable
+    #    dans git, et impossible à relire depuis une autre version de Python.
     if params is not None:
-        params_path = os.path.join(LOCAL_REGISTRY_PATH, "params", f"{timestamp}.pickle")
-        os.makedirs(os.path.dirname(params_path), exist_ok=True)
-        with open(params_path, "wb") as file:
-            pickle.dump(params, file)
+        _write_json(PARAMS_DIR / f"{timestamp}.json", params)
 
     if metrics is not None:
-        metrics_path = os.path.join(LOCAL_REGISTRY_PATH, "metrics", f"{timestamp}.pickle")
-        os.makedirs(os.path.dirname(metrics_path), exist_ok=True)
-        with open(metrics_path, "wb") as file:
-            pickle.dump(metrics, file)
+        _write_json(METRICS_DIR / f"{timestamp}.json", metrics)
 
-    print("✅ Results saved locally")
+    print(Fore.GREEN + f"✅ Results saved locally ({LOCAL_REGISTRY_PATH})" + Style.RESET_ALL)
 
-    # 2. Save on MLflow
+    # 2. Sauvegarde sur MLflow
+    #    Rappel : log_params/log_metrics n'ont de sens qu'À L'INTÉRIEUR d'un run
+    #    actif, ce dont se charge le décorateur @mlflow_run sur train()/evaluate().
     if MODEL_TARGET == "mlflow":
         if params is not None:
             mlflow.log_params(params)
@@ -43,107 +119,151 @@ def save_results(params: dict, metrics: dict) -> None:
         print("✅ Results saved on MLflow")
 
 
-def save_model(model) -> None:
+def save_model(model: Any) -> None:
     """
     Persist trained model locally on the hard drive.
     - if MODEL_TARGET='gcs', also persist it in the GCS bucket
     - if MODEL_TARGET='mlflow', also persist it on MLflow
     """
-    timestamp = time.strftime("%Y%m%d-%H%M%S")
-
-    # TODO: Modify the saving logic depending on the chosen framework (Scikit-Learn, Keras, PyTorch...)
-    # Example for Scikit-Learn:
-    # model_path = os.path.join(LOCAL_REGISTRY_PATH, "models", f"{timestamp}.pkl")
-    # os.makedirs(os.path.dirname(model_path), exist_ok=True)
-    # with open(model_path, "wb") as file:
-    #     pickle.dump(model, file)
-    # print("✅ Model saved locally")
-
+    # On valide la cible AVANT d'écrire quoi que ce soit : sinon on laisserait
+    # un modèle sur le disque tout en levant une exception, ce qui donne un
+    # succès partiel très difficile à diagnostiquer.
     if MODEL_TARGET == "gcs":
-        # TODO: Implement GCS upload logic
-        # print("✅ Model saved to GCS")
-        raise NotImplementedError("Saving model to GCS is not implemented yet.")
+        raise NotImplementedError(
+            "❌ MODEL_TARGET='gcs' : l'upload vers Cloud Storage n'est pas implémenté.\n"
+            "   → Implémente-le ici (google.cloud.storage), ou passe MODEL_TARGET=local dans ton .env."
+        )
 
     if MODEL_TARGET == "mlflow":
-        # TODO: Modify the mlflow log depending on the framework (mlflow.sklearn, mlflow.tensorflow...)
-        # mlflow.sklearn.log_model(
-        #     sk_model=model,
-        #     artifact_path="model",
-        #     registered_model_name=MLFLOW_MODEL_NAME
-        # )
-        # print("✅ Model saved to MLflow")
-        raise NotImplementedError("Saving model to MLflow is not implemented yet.")
+        raise NotImplementedError(
+            "❌ MODEL_TARGET='mlflow' : l'enregistrement du modèle n'est pas implémenté.\n"
+            "   → Décommente le bloc mlflow.<framework>.log_model ci-dessous, ou passe MODEL_TARGET=local dans ton .env."
+        )
+
+    # --- MODEL_TARGET == "local" ---
+    timestamp = time.strftime("%Y%m%d-%H%M%S")
+    model_path = MODELS_DIR / f"{timestamp}.pkl"
+
+    # TODO: Addapter la sérialisation au framework choisi (Keras .keras,
+    # PyTorch .pt, XGBoost .json...) — pickle convient à scikit-learn.
+    model_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(model_path, "wb") as file:
+        pickle.dump(model, file)
+
+    print(Fore.GREEN + f"✅ Model saved locally: {model_path}" + Style.RESET_ALL)
+
+    # TODO (MODEL_TARGET='mlflow' — décommenter dans la branche dédiée) :
+    # mlflow.sklearn.log_model(
+    #     sk_model=model,
+    #     artifact_path="model",
+    #     registered_model_name=MLFLOW_MODEL_NAME,
+    # )
 
 
-def load_model(stage="Production"):
+# ==============================================================================
+# 📥 CHARGEMENT
+# ==============================================================================
+def load_model(stage: str = DEFAULT_ALIAS) -> Any | None:
     """
     Return a saved model:
-    - locally (latest one in alphabetical order)
-    - or from GCS (most recent one) if MODEL_TARGET=='gcs'
-    - or from MLFLOW (by "stage") if MODEL_TARGET=='mlflow'
+    - locally the most recent one (by modification time)
+    - or from GCS (most recent one) if MODEL_TARGET == 'gcs'
+    - or from MLflow, by alias, if MODEL_TARGET == 'mlflow'
+
+    `stage` est conservé pour la compatibilité de signature ; il désigne
+    désormais l'ALIAS MLflow (voir mlflow_set_alias).
     """
     if MODEL_TARGET == "local":
-        print(Fore.BLUE + f"\nLoad latest model from local registry..." + Style.RESET_ALL)
+        print(Fore.BLUE + "\nLoad latest model from local registry..." + Style.RESET_ALL)
 
-        local_model_directory = os.path.join(LOCAL_REGISTRY_PATH, "models")
-        local_model_paths = glob.glob(f"{local_model_directory}/*")
-
-        if not local_model_paths:
-            print("❌ No local model found")
+        model_path = _latest_file(MODELS_DIR, pattern="*.pkl")
+        if model_path is None:
+            print(
+                f"❌ No model found in {MODELS_DIR}\n"
+                f"   → Entraîne-en un d'abord : `make run_train`"
+            )
             return None
 
-        most_recent_model_path_on_disk = sorted(local_model_paths)[-1]
+        print(f"✅ Loading model: {model_path.name}")
+        with open(model_path, "rb") as file:
+            return pickle.load(file)
 
-        # TODO: Modify the loading logic depending on the chosen framework
-        # Example for Scikit-Learn:
-        # with open(most_recent_model_path_on_disk, "rb") as file:
-        #     latest_model = pickle.load(file)
-        # print("✅ Model loaded from local disk (TODO)")
-        # return latest_model
+    if MODEL_TARGET == "gcs":
+        raise NotImplementedError(
+            "❌ MODEL_TARGET='gcs' : le téléchargement depuis Cloud Storage n'est pas implémenté.\n"
+            "   → Implémente-le ici (google.cloud.storage), ou passe MODEL_TARGET=local dans ton .env."
+        )
 
-        raise NotImplementedError("Loading model from local disk is not implemented yet. See TODO.")
-
-    elif MODEL_TARGET == "gcs":
-        # TODO: Implement GCS download logic
-        # print("✅ Latest model downloaded from GCS (TODO)")
-        raise NotImplementedError("Loading model from GCS is not implemented yet.")
-
-    elif MODEL_TARGET == "mlflow":
-        # TODO: Implement MLflow download logic
-        # print(Fore.BLUE + f"\nLoad [{stage}] model from MLflow..." + Style.RESET_ALL)
-        # model = ...
-        # return model
-        raise NotImplementedError("Loading model from MLflow is not implemented yet.")
+    if MODEL_TARGET == "mlflow":
+        raise NotImplementedError(
+            "❌ MODEL_TARGET='mlflow' : le chargement depuis MLflow n'est pas implémenté.\n"
+            "   → Utilise mlflow.<framework>.load_model avec l'alias, ou passe MODEL_TARGET=local dans ton .env."
+        )
 
     return None
 
-def mlflow_transition_model(current_stage: str, new_stage: str) -> None:
-    """
-    Transition the latest model from the `current_stage` to the
-    `new_stage` and archive the existing model in `new_stage`.
-    """
-    mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
 
-    client = MlflowClient()
-
-    version = client.get_latest_versions(name=MLFLOW_MODEL_NAME, stages=[current_stage])
-
-    if not version:
-        print(f"\n❌ No model found with name {MLFLOW_MODEL_NAME} in stage {current_stage}")
+# ==============================================================================
+# 🏷️ ALIAS MLFLOW (remplace les "model stages")
+# ==============================================================================
+def mlflow_latest_version() -> str | None:
+    """Renvoie la version la plus élevée enregistrée sous MLFLOW_MODEL_NAME."""
+    if not MLFLOW_MODEL_NAME:
         return None
 
-    client.transition_model_version_stage(
+    mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+    client = MlflowClient()
+
+    versions = client.search_model_versions(f"name='{MLFLOW_MODEL_NAME}'")
+    if not versions:
+        return None
+
+    return max(versions, key=lambda version: int(version.version)).version
+
+
+def mlflow_set_alias(version: str | int | None = None, alias: str = DEFAULT_ALIAS) -> None:
+    """
+    Pointer `alias` sur une version donnée du modèle enregistré.
+
+    Remplace l'API "model stages" (`transition_model_version_stage`), obsolète :
+    les stages Staging/Production sont dépréciés depuis MLflow 2.x au profit des
+    ALIAS. Un alias est plus souple — une même version peut en porter plusieurs,
+    et promouvoir un modèle n'efface plus l'historique du précédent.
+
+    Si `version` est None, la dernière version enregistrée est utilisée.
+    """
+    if not MLFLOW_MODEL_NAME:
+        raise ValueError(
+            "❌ MLFLOW_MODEL_NAME est vide : impossible d'identifier le modèle dans le registre.\n"
+            "   → Renseigne MLFLOW_MODEL_NAME dans ton .env."
+        )
+
+    mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+    client = MlflowClient()
+
+    if version is None:
+        version = mlflow_latest_version()
+        if version is None:
+            print(f"❌ No registered model named {MLFLOW_MODEL_NAME}")
+            return None
+
+    client.set_registered_model_alias(
         name=MLFLOW_MODEL_NAME,
-        version=version[0].version,
-        stage=new_stage,
-        archive_existing_versions=True
+        alias=alias,
+        version=str(version),
     )
 
-    print(f"✅ Model {MLFLOW_MODEL_NAME} (version {version[0].version}) transitioned from {current_stage} to {new_stage}")
-
+    print(
+        Fore.GREEN
+        + f"✅ {MLFLOW_MODEL_NAME} version {version} is now aliased as '{alias}'"
+        + Style.RESET_ALL
+    )
     return None
 
 
+# ==============================================================================
+# 🔁 DÉCORATEUR DE RUN MLFLOW
+# ==============================================================================
 def mlflow_run(func):
     """
     Generic function to log params and results to MLflow along with universal auto-logging.
@@ -151,20 +271,31 @@ def mlflow_run(func):
     Args:
         - func (function): Function you want to run within the MLflow run
     """
+
+    @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        # End any active run to avoid conflicts
+        # Un run resté ouvert (exception précédente, cellule de notebook
+        # interrompue...) ferait échouer start_run(). On le ferme au lieu de
+        # laisser remonter une erreur qui n'a rien à voir avec l'appel courant.
         if mlflow.active_run():
             mlflow.end_run()
 
-        mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
-        mlflow.set_experiment(experiment_name=MLFLOW_EXPERIMENT)
+        # Sans URI explicite, MLflow écrit dans ./mlruns (ignoré par git) :
+        # pratique pour développer en local sans serveur de tracking.
+        if MLFLOW_TRACKING_URI:
+            mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+
+        if MLFLOW_EXPERIMENT:
+            mlflow.set_experiment(experiment_name=MLFLOW_EXPERIMENT)
 
         with mlflow.start_run():
-            # Universal autolog works for TensorFlow, Scikit-learn, XGBoost, etc.
+            # autolog() couvre TensorFlow/Keras, scikit-learn, XGBoost, PyTorch…
+            # sans code spécifique au framework.
             mlflow.autolog()
             results = func(*args, **kwargs)
 
         print("✅ mlflow_run auto-log done")
 
         return results
+
     return wrapper

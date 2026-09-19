@@ -34,14 +34,14 @@ reinstall_package: ## Force a clean reinstall of the environment (bypasses uv ca
 	@uv sync --reinstall
 	@echo "✅ Environment reinstalled successfully."
 
-init_data_folders: ## Create local directories for data and model outputs
-	@echo "📁 Creating local data folders..."
+init_data_folders: ## Create the local data and model registry directories
+	@echo "📁 Creating local folders..."
 	@mkdir -p data/raw
 	@mkdir -p data/processed
-	@mkdir -p training_outputs/metrics
-	@mkdir -p training_outputs/models
-	@mkdir -p training_outputs/params
-	@echo "✅ Folders created. (Make sure they are in your .gitignore!)"
+	@mkdir -p models/models
+	@mkdir -p models/params
+	@mkdir -p models/metrics
+	@echo "✅ Folders created. Leurs contenus sont ignorés par git (data/, *.pkl, *.json)."
 
 clean: ## Clean Python cache, build files, and hidden OS files
 	@echo "🧹 Cleaning up project..."
