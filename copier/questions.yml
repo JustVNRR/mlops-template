@@ -1,0 +1,92 @@
+# ==============================================================================
+# ❓ QUESTIONS — in the order they are asked
+# ==============================================================================
+
+# These three carry a placeholder and no default: the field looks like it has a
+# value, so it must refuse an empty answer — a placeholder alone accepts it
+# silently, and the project ends up with no name. The validator is what makes
+# Copier ask again.
+project_name:
+  type: str
+  help: "What is the name of your project?"
+  placeholder: "My MLOps Project"
+  validator: >-
+    {% if not project_name %}
+    ❌ A project name is required.
+    {% endif %}
+
+package_name:
+  type: str
+  help: "What is the Python package name? (snake_case, no dashes)"
+  default: "{{ project_name | lower | replace(' ', '_') | replace('-', '_') }}"
+  validator: >-
+    {% if not package_name %}
+    ❌ The package name cannot be empty.
+    {% elif not (package_name | regex_search('^[a-z][a-z0-9_]*$')) %}
+    ❌ '{{ package_name }}' is not a valid Python package name.
+    → Use lowercase letters, digits and underscores only, starting with a letter.
+    {% endif %}
+
+author_name:
+  type: str
+  help: "Who is the author? (Full Name)"
+  placeholder: "John Doe"
+  validator: >-
+    {% if not author_name %}
+    ❌ An author name is required.
+    {% endif %}
+
+# The build backend parses this one (hatchling reads `authors[].email` through
+# email.headerregistry.Address) and refuses to build a project whose address is
+# malformed: a space, or a domain without a dot, and `uv sync` fails inside the
+# freshly generated project. So the rule below is the one hatchling applies,
+# minus the exotic forms nobody types — a dot-atom local part, and a dotted
+# domain ending in a real TLD. Everything it accepts, hatchling accepts too.
+#
+# The backslashes are doubled because a Jinja string literal is DECODED: a lone
+# `\.` is an invalid escape sequence there, which Jinja warns about and will
+# eventually stop tolerating. Doubling it is what produces the single `\.` the
+# regex needs.
+author_email:
+  type: str
+  help: "What is the author's email address?"
+  placeholder: "you@example.com"
+  validator: >-
+    {% if not author_email %}
+    ❌ An email address is required.
+    {% elif not (author_email | regex_search('^[A-Za-z0-9._%+\'-]+@[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*\\.[A-Za-z]{2,}\\Z')) %}
+    ❌ '{{ author_email }}' is not a valid email address.
+    → Expected something like 'you@example.com'. The build backend reads this field and refuses to build the project when the address is malformed.
+    {% endif %}
+
+license:
+  type: str
+  help: "Which license do you want to use?"
+  choices:
+    - Proprietary
+    - MIT
+    - Apache-2.0
+    - BSD-3-Clause
+  default: Proprietary
+
+modules:
+  type: str
+  multiselect: true
+  help: |
+    Which optional building blocks do you want to include?
+    (Space toggles, Enter confirms. Drop the ones you do not need)
+
+      gcp     → BigQuery, Cloud Storage, a training VM, Cloud Run deployment
+      mlflow  → Experiment tracking and model registry
+      prefect → Orchestration of the pipeline
+      docker  → Packaging the API as a container image
+  choices:
+    - gcp
+    - mlflow
+    - prefect
+    - docker
+  default:
+    - gcp
+    - mlflow
+    - prefect
+    - docker

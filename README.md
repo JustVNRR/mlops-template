@@ -93,13 +93,28 @@ package and nothing to run. Everything a generated project receives lives under
 
 ```
 .
-├── copier.yml      # the questions, the file exclusions, the closing message
+├── copier.yml      # an index: one !include per section, and nothing else
+├── copier/         # the sections themselves — settings, messages, questions, flags
 ├── README.md       # this file — about the template
 ├── pyproject.toml  # the template's OWN tests: nothing is built or published
 ├── tests/          # generates projects, then asserts on what came out
 ├── .github/        # generates a project, then validates THAT project
 └── template/       # everything the generated project receives, verbatim
 ```
+
+`copier.yml` holds no configuration of its own. It is an index of YAML
+documents, one `!include` each, and Copier merges them in order. The split
+follows the file's four concerns: `settings.yml` (what is rendered, what is
+excluded, what the project owns), `messages.yml` (the four moments Copier talks
+to the user), `questions.yml` and `flags.yml`. Two rules come with it:
+
+- **A key starting with `_` is a setting; anything else is a question.** That is
+  Copier's own rule, not ours, and it is what makes the four sections
+  interchangeable — `_message_after_copy` is the setting `message_after_copy`.
+- **The four list-valued settings** (`_exclude`, `_skip_if_exists`, …)
+  **are concatenated** across the documents, so their entries can be split
+  wherever they read best. For any other key, the last document wins — which is
+  why the flags, derived from the answers, are in the last one.
 
 ### Rules when editing the template
 
@@ -136,7 +151,7 @@ package and nothing to run. Everything a generated project receives lives under
 
 5. **A condition tests a computed flag, never the answer list.** `{% if with_gcp %}`
    rather than `{% if 'gcp' in modules %}`; the four flags are derived at the
-   bottom of `copier.yml`. The two are not interchangeable — `modules` is what
+   bottom of `copier/flags.yml`. The two are not interchangeable — `modules` is what
    was ticked, the flags are what the project is built with, and they differ
    the moment one block implies another, which is precisely what `with_docker`
    exists for. A file written against the list silently misses that.
@@ -148,7 +163,7 @@ file you *want* to ship must not match an ignore rule. This is exactly how
 `.env.sample.jinja` disappeared once: `template/.gitignore` ignored `.env.*`,
 and only `.env.sample` was exempted.
 
-`_exclude` in `copier.yml` covers the rest: the runtime directories under
+`_exclude` in `copier/settings.yml` covers the rest: the runtime directories under
 `models/`, which no ignore rule mentions, and the optional building blocks.
 
 ## ✅ How this repository is validated

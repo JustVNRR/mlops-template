@@ -7,200 +7,21 @@
 #
 # Usage:
 #     copier copy gh:JustVNRR/mlops-template my-project
-
-_subdirectory: template
-
-# Files the project owns from the moment it is generated: the template supplies
-# a first version and then never touches them again, not even when the template
-# changes them — `copier copy --overwrite` and `copier update` both leave them
-# alone.
 #
-# The list stops here on purpose. Those three are artefacts of the user's
-# project, where the template's version is only a starting point. The files the
-# generated README invites the user to adapt — `params.py`, `data.py`,
-# `model.py` and the rest — are CODE, and a fix to code has to be able to reach
-# a project that already exists. Updating them is already safe: `copier update`
-# applies a three-way patch, so a template change lands without erasing what
-# the user wrote around it, and a real conflict is reported instead of being
-# applied.
-_skip_if_exists:
-  - .gitignore
-  - README.md
-  - notebooks/*.ipynb
+# This file is only an index. Copier reads every YAML document of it and merges
+# them, so each `!include` below is an ordinary file under copier/, holding one
+# concern. Nothing stops a key from appearing in several of them: the four
+# list-valued settings (`_exclude`, `_skip_if_exists`, ...) are concatenated,
+# and for anything else the last document wins.
 
-# Copier already filters `template/` through .gitignore, so the leftovers of a
-# local run — a dataset, a virtualenv, a .pkl — are skipped anyway. These
-# entries cover what .gitignore does NOT: the runtime directories under
-# `models/`, which nothing tracks and therefore nothing ignores, and the
-# optional building blocks.
-_exclude:
-  - models/models/
-  - models/params/
-  - models/metrics/
-  # Optional building blocks, removed by the flags derived from `modules` — not
-  # by the answer itself, since GCP also brings Docker. The pattern is
-  # matched against the path as it will land in the project — so the templates
-  # suffix is NOT part of it: `Dockerfile` matches `Dockerfile.jinja` too.
-  - "{% if not with_docker %}Dockerfile{% endif %}"
-  - "{% if not with_docker %}.dockerignore{% endif %}"
-  - "{% if not with_docker %}docker-compose.yml{% endif %}"
-  - "{% if not with_docker %}make/docker.mk{% endif %}"
-  - "{% if not with_docker %}tests/api/test_docker_endpoints.py{% endif %}"
-  - "{% if not with_docker %}.github/workflows/docker.yml{% endif %}"
-  - "{% if not with_gcp %}make/gcp.mk{% endif %}"
-  - "{% if not with_gcp %}make/bigquery.mk{% endif %}"
-  - "{% if not with_gcp %}make/vm.mk{% endif %}"
-  - "{% if not with_gcp %}make/cloudrun.mk{% endif %}"
-  - "{% if not with_gcp %}scripts/setup_vm.sh{% endif %}"
-  - "{% if not with_gcp %}tests/infrastructure/test_gcp_setup.py{% endif %}"
-  - "{% if not with_gcp %}tests/api/test_cloud_endpoints.py{% endif %}"
-  - "{% if not with_prefect %}src/{{ package_name }}/interface/workflow.py{% endif %}"
-
-_message_after_copy: |
-  Your project {{ project_name }} is ready! 🚀
-
-  Next steps:
-
-    1. cd {{ _copier_conf.dst_path }}
-    2. cp .env.sample .env       # then fill in your credentials (GCP, MLflow...)
-    3. uv sync                   # creates the .venv/ AND generates the uv.lock
-    4. git init && git add -A
-    5. git commit -m "Initial commit"
-
-  ⚠️ Important: Make sure your new `uv.lock` is included in this first commit.
-  The Dockerfile and CI pipelines rely on it (they install strictly in `--frozen` mode) and will crash if the file is missing from your repository.
-
-  To test your setup:
-    - make run_all               # preprocess → train → evaluate → predict
-    - make run_api               # the API starts on http://127.0.0.1:8000
-
-  {% if with_docker and 'docker' not in modules %}  Note: GCP brought the Docker block along — Cloud Run deploys an image, and only the Docker block builds one.
-
-  {% endif %}  Check README.md for further details
-
-# ==============================================================================
-# ❓ QUESTIONS
-# ==============================================================================
-
-# These three carry a placeholder and no default: the field looks like it has a
-# value, so it must refuse an empty answer — a placeholder alone accepts it
-# silently, and the project ends up with no name. The validator is what makes
-# Copier ask again.
-project_name:
-  type: str
-  help: "What is the name of your project?"
-  placeholder: "My MLOps Project"
-  validator: >-
-    {% if not project_name %}
-    ❌ A project name is required.
-    {% endif %}
-
-package_name:
-  type: str
-  help: "What is the Python package name? (snake_case, no dashes)"
-  default: "{{ project_name | lower | replace(' ', '_') | replace('-', '_') }}"
-  validator: >-
-    {% if not package_name %}
-    ❌ The package name cannot be empty.
-    {% elif not (package_name | regex_search('^[a-z][a-z0-9_]*$')) %}
-    ❌ '{{ package_name }}' is not a valid Python package name.
-    → Use lowercase letters, digits and underscores only, starting with a letter.
-    {% endif %}
-
-author_name:
-  type: str
-  help: "Who is the author? (Full Name)"
-  placeholder: "John Doe"
-  validator: >-
-    {% if not author_name %}
-    ❌ An author name is required.
-    {% endif %}
-
-# The build backend parses this one (hatchling reads `authors[].email` through
-# email.headerregistry.Address) and refuses to build a project whose address is
-# malformed: a space, or a domain without a dot, and `uv sync` fails inside the
-# freshly generated project. So the rule below is the one hatchling applies,
-# minus the exotic forms nobody types — a dot-atom local part, and a dotted
-# domain ending in a real TLD. Everything it accepts, hatchling accepts too.
-#
-# The backslashes are doubled because a Jinja string literal is DECODED: a lone
-# `\.` is an invalid escape sequence there, which Jinja warns about and will
-# eventually stop tolerating. Doubling it is what produces the single `\.` the
-# regex needs.
-author_email:
-  type: str
-  help: "What is the author's email address?"
-  placeholder: "you@example.com"
-  validator: >-
-    {% if not author_email %}
-    ❌ An email address is required.
-    {% elif not (author_email | regex_search('^[A-Za-z0-9._%+\'-]+@[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*\\.[A-Za-z]{2,}\\Z')) %}
-    ❌ '{{ author_email }}' is not a valid email address.
-    → Expected something like 'you@example.com'. The build backend reads this field and refuses to build the project when the address is malformed.
-    {% endif %}
-
-license:
-  type: str
-  help: "Which license do you want to use?"
-  choices:
-    - Proprietary
-    - MIT
-    - Apache-2.0
-    - BSD-3-Clause
-  default: Proprietary
-
-modules:
-  type: str
-  multiselect: true
-  help: |
-    Which optional building blocks do you want to include? 
-    (Space toggles, Enter confirms. Drop the ones you do not need)
-
-      gcp     → BigQuery, Cloud Storage, a training VM, Cloud Run deployment
-      mlflow  → Experiment tracking and model registry
-      prefect → Orchestration of the pipeline
-      docker  → Packaging the API as a container image
-  choices:
-    - gcp
-    - mlflow
-    - prefect
-    - docker
-  default:
-    - gcp
-    - mlflow
-    - prefect
-    - docker
-
-# ==============================================================================
-# 🔧 COMPUTED FLAGS
-# ==============================================================================
-# Never asked — `when: false` — and always derived from the answers above. The
-# templates then test a boolean, `{% if with_gcp %}`, instead of searching the
-# list, which is shorter and, more importantly, lets one block depend on
-# another: `modules` alone cannot express "GCP brings Docker".
-#
-# Order matters. A flag may only read the ones declared before it, so `with_gcp`
-# comes first and `with_docker` last.
-
-with_gcp:
-  type: bool
-  when: false
-  default: "{{ 'gcp' in modules }}"
-
-with_mlflow:
-  type: bool
-  when: false
-  default: "{{ 'mlflow' in modules }}"
-
-with_prefect:
-  type: bool
-  when: false
-  default: "{{ 'prefect' in modules }}"
-
-with_docker:
-  type: bool
-  when: false
-  # Cloud Run deploys an image, and only `make/docker.mk` can build one: without
-  # the Docker block, a GCP project ships a `cloudrun_deploy` target whose image
-  # nothing can ever produce. Ticking GCP therefore ticks this too.
-  default: "{{ 'docker' in modules or with_gcp }}"
+# The subdirectory Copier renders, and the files it leaves out.
+!include copier/settings.yml
+---
+# What the user reads before and after a copy, and before and after an update.
+!include copier/messages.yml
+---
+# The six questions, in the order they are asked.
+!include copier/questions.yml
+---
+# One boolean per building block, derived from `modules`.
+!include copier/flags.yml
