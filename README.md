@@ -30,6 +30,26 @@ the generated `README.md`.
 | `author_name` | — | `pyproject.toml` |
 | `author_email` | — | `pyproject.toml` |
 | `license` | `Proprietary` | `pyproject.toml` |
+| `modules` | all four | which optional building blocks the project gets |
+
+### The building blocks
+
+`modules` is a multi-select. Untick what you do not need and the corresponding
+files, dependencies, Makefile targets, tests, environment variables and README
+sections simply are not there — not commented out, absent.
+
+| Block | What it brings | Unticked, the project loses |
+|---|---|---|
+| `gcp` | BigQuery, Cloud Storage, a training VM, Cloud Run | `make/{gcp,bigquery,vm,cloudrun}.mk`, the cloud dependencies, the GCP tests, `DATA_SOURCE=bigquery` |
+| `mlflow` | experiment tracking, model registry, aliases | the MLflow half of `registry.py`, the `@mlflow_run` decorators, the promotion step of the workflow |
+| `prefect` | orchestration of the full retraining cycle | `interface/workflow.py` in its entirety, `make run_workflow` |
+| `docker` | packaging the API as an image | the `Dockerfile`, `docker-compose.yml`, `make/docker.mk`, the Docker CI workflow |
+
+Every combination is meant to work. Only two are checked by the CI: the full
+project and a project with no block at all.
+
+`gcp` and `docker` overlap once: publishing an image to Artifact Registry needs
+both, so those targets live in `make/docker.mk` under a `gcp` condition.
 
 ## 🗂️ This repository
 
@@ -57,6 +77,17 @@ lives under `template/`.
    (`{{.Ports}}`) are perfectly valid inside un-suffixed files, and Jinja would
    choke on them. This is why the shipped CI workflow carries no suffix.
 
+3. **A Jinja tag does not swallow the newline that follows it** — only the text
+   after the tag on the same line is emitted. So `{% endif %}` at the end of a
+   line always emits that newline, while `{% endif %}` followed by content
+   emits the content and nothing more. Two consequences, both met in practice:
+   a closing tag at the end of a file leaves a trailing blank line that
+   `ruff format --check` rejects, and a guard whose two branches need different
+   blank-line counts cannot satisfy both. The shape that works everywhere is an
+   opening tag glued to the first line of content and a closing tag glued to
+   the next line of content; when that is not enough, move the guard away from
+   the boundary it sits on.
+
 Copier filters `template/` through `.gitignore` — **including the one at the
 repository root**, since its rules apply at every level. That cuts both ways: a
 leftover from a local run (a dataset, a virtualenv) is skipped for free, but a
@@ -79,6 +110,7 @@ reading the CI, not by running `make` locally.
 ## 📦 What a generated project contains
 
 A FastAPI service, a scikit-learn pipeline driven by a Makefile, a local model
-registry, optional MLflow tracking and Prefect orchestration, BigQuery and Cloud
-Run deployment paths, notebooks, and a test suite split by tier (in memory,
-container, deployed). The generated `README.md` documents all of it.
+registry, notebooks, a test suite split by tier (in memory, container,
+deployed), and — depending on the answer to `modules` — MLflow tracking,
+Prefect orchestration and the Google Cloud deployment paths. The generated
+`README.md` documents exactly what that project contains, and nothing else.
