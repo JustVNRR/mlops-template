@@ -9,10 +9,13 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# This repository is a Copier TEMPLATE, not a project: there is no pyproject.toml
-# at the root and `src/{{ package_name }}/` is not valid Python. Every job below
-# therefore generates a real project first, then validates THAT. Running lint or
-# pytest here directly would validate nothing.
+# This repository is a Copier TEMPLATE, not a project: `src/{{ package_name }}/`
+# is not valid Python and there is nothing to run. Most jobs below therefore
+# generate a real project first, then validate THAT — running lint or the tests
+# on the sources here would validate nothing.
+#
+# The `template` job is the exception: it runs the test suite at the root, which
+# generates projects itself.
 env:
   PROJECT_NAME: CI Project
   PACKAGE_NAME: ci_project
@@ -21,6 +24,34 @@ env:
   LICENSE: MIT
 
 jobs:
+  # The tests at the root generate projects with pytest-copie and assert on
+  # what comes out: every combination of building blocks, and the answers that
+  # break files. Copier runs in-process there, so this is the fast job.
+  template:
+    name: Template tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      # The root pyproject.toml declares nothing to install but the test
+      # dependencies; `tool.uv.package = false` keeps uv from trying to build
+      # the repository itself.
+      - name: Install the test dependencies
+        run: uv sync --frozen
+
+      - name: Lint
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+
+      - name: Run the template tests
+        run: uv run pytest
+
   lint:
     name: Lint (generated project)
     runs-on: ubuntu-latest

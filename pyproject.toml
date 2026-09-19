@@ -1,0 +1,59 @@
+# ==============================================================================
+# 🧪 THE TEMPLATE'S OWN TESTS
+# ==============================================================================
+# This repository is a Copier template, not a package: nothing is built here and
+# nothing is published. This file exists for the test suite below, which
+# generates real projects from `template/` and asserts on what comes out — the
+# only way to check a template, since there is nothing to import at the root.
+#
+# The projects it generates bring their own pyproject.toml: the one under
+# `template/`.
+
+[project]
+name = "mlops-template"
+version = "0.0.0"
+description = "The tests of the MLOps Copier template. Not a package."
+requires-python = ">=3.11"
+
+# Without this, `uv sync` would try to build and install the repository itself.
+[tool.uv]
+package = false
+
+[dependency-groups]
+dev = [
+  "pytest>=8.2",
+  "pytest-copie>=0.3",   # generates a project from the template, from a fixture
+  "pyyaml>=6",           # to read back the .copier-answers.yml that Copier wrote
+  "ruff>=0.6",           # the tests are held to the standard they check for
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v -ra --tb=short"
+
+# Same rules as the generated projects, so the two read the same way.
+#
+# `template/` is excluded because it is not ours to lint: it holds Jinja
+# templates, not modules, and whatever comes out of them is linted inside each
+# generated project by the jobs above. Note `extend-exclude`: `exclude` would
+# REPLACE the defaults, and ruff would start walking .git/ and .venv/.
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+extend-exclude = ["template"]
+
+[tool.ruff.lint]
+select = [
+  "E4", "E7", "E9",  # pycodestyle errors
+  "F",               # pyflakes: unused imports, undefined names
+  "W",               # pycodestyle warnings
+  "I",               # import sorting (isort)
+  "UP",              # syntax modernisation (pyupgrade)
+  "B",               # common pitfalls (flake8-bugbear)
+]
+ignore = [
+  "E501",  # line length: handled by the formatter, not the linter
+]
+
+[tool.ruff.format]
+quote-style = "double"
