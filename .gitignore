@@ -2,10 +2,15 @@
 # 🔐 SÉCURITÉ & SECRETS (LE PLUS IMPORTANT)
 # ==============================================================================
 .env
+.env.*
+!.env.sample
 *.pem
 *.key
+# *.json est ignoré volontairement : les clés de service account GCP portent des
+# noms imprévisibles (mon-projet-1234567-abcdef.json) et une fuite coûte cher.
+# Pour versionner un JSON légitime, ajoute une exception ciblée :
+#   !config/settings.json
 *.json
-!.env.sample
 
 # ==============================================================================
 # 🐍 ENVIRONNEMENT PYTHON
@@ -34,6 +39,16 @@ share/python-wheels/
 *.egg
 MANIFEST
 
+# Caches d'outils (ruff, mypy, pytest, notebooks)
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
 # ==============================================================================
 # 📦 ENVIRONNEMENTS VIRTUELS
 # ==============================================================================
@@ -43,6 +58,9 @@ env/
 .env_python/
 pip-log.txt
 pip-delete-this-directory.txt
+
+# État local de direnv (le projet versionne .envrc, pas son cache)
+.direnv/
 
 # ==============================================================================
 # 📊 DATA & MACHINE LEARNING (Ne pas polluer Git avec des gros fichiers)
@@ -71,3 +89,6 @@ mlruns/
 ehthumbs.db
 Thumbs.db
 *.Identifier
+
+# Configuration locale de l'outillage (jamais partagée)
+.claude/settings.local.json
