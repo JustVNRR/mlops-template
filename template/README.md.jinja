@@ -58,14 +58,14 @@ predictions. Replace the pieces one at a time with your own afterwards (see
 ├── src/                       # src layout: only importable code lives here
 │   └── {{ package_name }}/        #   the Python package
 │       ├── params.py          #     configuration: schema, thresholds, env vars
-│       ├── logging_config.py  #     loguru: one stream, uvicorn and Prefect included
+│       ├── logging_config.py  #     loguru: one stream, libraries included
 │       ├── api/
 │       │   ├── fast.py        #     FastAPI application (lifespan, routes)
 │       │   └── schemas.py     #     Pydantic input/output contract
 │       ├── interface/
-│       │   ├── main.py        #     pipeline: preprocess / train / evaluate / pred
-│       │   └── workflow.py    #     Prefect orchestration
-│       └── ml_logic/
+│       │   {% if 'prefect' in modules %}├{% else %}└{% endif %}── main.py        #     pipeline: preprocess / train / evaluate / pred
+{% if 'prefect' in modules %}│       │   └── workflow.py    #     Prefect orchestration
+{% endif %}│       └── ml_logic/
 │           ├── demo_data.py   #     the synthetic dataset (the ONLY domain file)
 │           ├── data.py        #     loading, cleaning, persistence
 │           ├── preprocessor.py#    scikit-learn transformations
@@ -140,7 +140,7 @@ recovers them, rather than merely returning a number.
 
 `ml_logic/demo_data.py` is the only file that knows about it.
 
-### Orchestration (Prefect)
+{% if 'prefect' in modules %}### Orchestration (Prefect)
 
 `make run_workflow` runs the full cycle: data preparation, evaluation of the
 model in production, retraining, promotion if the new model does better, and a
@@ -148,6 +148,7 @@ notification. Set `EVALUATION_START_DATE` in `.env` to define the evaluation
 period.
 
 ---
+{% endif %}
 
 ## 🌐 The API
 

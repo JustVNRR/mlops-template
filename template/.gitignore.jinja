@@ -83,7 +83,10 @@ training_outputs/
 mlruns/
 mlflow.db
 mlflow.db-*
-{% endif %}.prefect/
+{% endif %}
+{% if 'prefect' in modules %}# Local artefacts created by Prefect.
+.prefect/
+{% endif %}
 
 # ==============================================================================
 # 🪵 LOGS (runtime output, never versioned)
