@@ -38,38 +38,45 @@ _exclude:
   - "{% if 'prefect' not in modules %}src/{{ package_name }}/interface/workflow.py{% endif %}"
 
 _message_after_copy: |
-  ✅ Your project is ready.
+  Your project {{ project_name }} is ready! 🚀
 
-  Next steps, from the project root:
+  Next steps:
 
-    1. cp .env.sample .env     # then fill in what you need (GCP, MLflow…)
-    2. uv sync                 # creates .venv/ AND uv.lock
-    3. make run_all            # preprocess → train → evaluate → predict
-    4. make run_api            # the API starts on http://127.0.0.1:8000
+    1. cd {{ _copier_conf.dst_path }}
+    2. cp .env.sample .env       # then fill in your credentials (GCP, MLflow...)
+    3. uv sync                   # creates the .venv/ AND generates the uv.lock
+    4. git init && git add -A
+    5. git commit -m "Initial commit"
 
-  Commit uv.lock. The Dockerfile and the CI install with `uv sync --frozen`,
-  which fails without it.
+  ⚠️ Important: Make sure your new `uv.lock` is included in this first commit.
+  The Dockerfile and CI pipelines rely on it (they install strictly in `--frozen` mode) and will crash if the file is missing from your repository.
 
-  The folder is not a git repository yet:
-    git init && git add -A && git commit -m "Initial commit"
+  To test your setup:
+    - make run_all               # preprocess → train → evaluate → predict
+    - make run_api               # the API starts on http://127.0.0.1:8000
 
-  README.md covers the rest.
+  Check README.md for further details
 
 # ==============================================================================
 # ❓ QUESTIONS
 # ==============================================================================
-# Only questions a newcomer can answer on sight. Anything that requires
-# understanding the template (optional building blocks, ways of working) is
-# decided by editing the generated project, not by answering up front.
 
+# These three carry a placeholder and no default: the field looks like it has a
+# value, so it must refuse an empty answer — a placeholder alone accepts it
+# silently, and the project ends up with no name. The validator is what makes
+# Copier ask again.
 project_name:
   type: str
-  help: The project name, as it should appear in the README and pyproject.toml.
-  default: My MLOps Project
+  help: "What is the name of your project?"
+  placeholder: "My MLOps Project"
+  validator: >-
+    {% if not project_name %}
+    ❌ A project name is required.
+    {% endif %}
 
 package_name:
   type: str
-  help: The Python import name (snake_case, no dashes).
+  help: "What is the Python package name? (snake_case, no dashes)"
   default: "{{ project_name | lower | replace(' ', '_') | replace('-', '_') }}"
   validator: >-
     {% if not package_name %}
@@ -81,17 +88,25 @@ package_name:
 
 author_name:
   type: str
-  help: The author name that goes into pyproject.toml.
-  default: Your Name
+  help: "Who is the author? (Full Name)"
+  placeholder: "John Doe"
+  validator: >-
+    {% if not author_name %}
+    ❌ An author name is required.
+    {% endif %}
 
 author_email:
   type: str
-  help: The author email that goes into pyproject.toml.
-  default: you@example.com
+  help: "What is the author's email address?"
+  placeholder: "you@example.com"
+  validator: >-
+    {% if not author_email %}
+    ❌ An email address is required.
+    {% endif %}
 
 license:
   type: str
-  help: The license declared in pyproject.toml.
+  help: "Which license do you want to use?"
   choices:
     - Proprietary
     - MIT
@@ -103,14 +118,13 @@ modules:
   type: str
   multiselect: true
   help: |
-    The optional building blocks to include — space toggles, enter confirms.
-    Leave them all on to get the full project; drop the ones you do not need.
+    Which optional building blocks do you want to include? 
+    (Space toggles, Enter confirms. Drop the ones you do not need)
 
-      gcp      BigQuery, Cloud Storage, a training VM, Cloud Run deployment
-      mlflow   experiment tracking and model registry
-      prefect  orchestration of the pipeline
-      docker   packaging the API as a container image (used by the GCP path
-               to build the image Cloud Run deploys)
+      gcp     → BigQuery, Cloud Storage, a training VM, Cloud Run deployment
+      mlflow  → Experiment tracking and model registry
+      prefect → Orchestration of the pipeline
+      docker  → Packaging the API as a container image
   choices:
     - gcp
     - mlflow

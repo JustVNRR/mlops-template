@@ -23,14 +23,21 @@ the generated `README.md`.
 
 ## ❓ The questions
 
-| Question | Default | What it drives |
+| Question | Answer | What it drives |
 |---|---|---|
-| `project_name` | `My MLOps Project` | README title, `pyproject.toml` description |
+| `project_name` | **required** — suggested in grey as a placeholder | README title, `pyproject.toml` description |
 | `package_name` | derived from the name above | `src/`, every import, `uvicorn`, custom commands |
-| `author_name` | — | `pyproject.toml` |
-| `author_email` | — | `pyproject.toml` |
-| `license` | `Proprietary` | `pyproject.toml` |
-| `modules` | all four | which optional building blocks the project gets |
+| `author_name` | **required** | `pyproject.toml` |
+| `author_email` | **required** | `pyproject.toml` |
+| `license` | `Proprietary` by default | `pyproject.toml` |
+| `modules` | all four by default | which optional building blocks the project gets |
+
+The required ones have a `placeholder` and no `default`: the field shows an
+example in grey, and the question comes back until something is typed. A
+placeholder alone would accept an empty answer without a word, which is why
+each of them also carries a `validator`. That also means `copier copy
+--defaults` needs those three answers passed with `-d` — which is what the CI
+does.
 
 ### The building blocks
 
