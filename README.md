@@ -1,140 +1,137 @@
 # 🚀 MLOps Template
 
-Template de démarrage pour un projet de Machine Learning : entraînement, suivi
-d'expériences, API de service et déploiement sur GCP — piloté par un Makefile,
-vérifié par une CI, et **exécutable immédiatement, sans compte cloud**.
+A starter template for a Machine Learning project: training, experiment
+tracking, a serving API and GCP deployment — driven by a Makefile, checked by a
+CI, and **runnable straight away, with no cloud account**.
 
 ---
 
-## 📋 Prérequis
+## 📋 Prerequisites
 
-| Outil | Pourquoi | Installation |
+| Tool | Why | Install |
 |---|---|---|
-| **GNU make** | Toutes les commandes du projet passent par lui | `sudo apt install make` (préinstallé sur macOS) |
-| **uv** | Environnements et dépendances Python | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
-| **Docker** | Étape 2 des tests d'API, build de l'image | [Docker Desktop](https://www.docker.com/products/docker-desktop/) |
-| **git** | Évidemment | — |
-| **gcloud CLI** | *Optionnel* — uniquement pour GCP | [Installation](https://cloud.google.com/sdk/docs/install) |
+| **GNU make** | Every project command goes through it | `sudo apt install make` (preinstalled on macOS) |
+| **uv** | Python environments and dependencies | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+| **Docker** | Step 2 of the API tests, and the image build | [Docker Desktop](https://www.docker.com/products/docker-desktop/) |
+| **git** | Obviously | — |
+| **gcloud CLI** | *Optional* — only for GCP | [Install](https://cloud.google.com/sdk/docs/install) |
 
-> **Sous Windows : utilise WSL2.** Ce projet est *nix-first (make, bash, sed,
-> Docker, CI Ubuntu). Dans un terminal Git Bash natif, `make` et `uv` ne sont
-> pas installés par défaut et les scripts d'initialisation ne fonctionnent pas.
-> `wsl --install` puis travaille depuis `/mnt/c/...` ou, mieux, clone dans le
-> système de fichiers Linux.
+> **On Windows: use WSL2.** This project is *nix-first (make, bash, sed, Docker,
+> Ubuntu CI). In a native Git Bash terminal, `make` and `uv` are not installed by
+> default and the initialisation scripts do not work. Run `wsl --install`, then
+> work from `/mnt/c/...` or — better — clone into the Linux filesystem.
 
-Python n'est **pas** à installer à la main : `uv` lit `.python-version` et
-télécharge l'interpréteur requis.
+Python itself is **not** to be installed by hand: `uv` reads `.python-version`
+and downloads the required interpreter.
 
 ---
 
-## 🚀 Démarrage rapide
+## 🚀 Quick start
 
 ```bash
-git clone https://github.com/JustVNRR/mlops-template.git mon-projet
-cd mon-projet
+git clone https://github.com/JustVNRR/mlops-template.git my-project
+cd my-project
 
-cp .env.sample .env            # puis renseigne PACKAGE_NAME
-make init_project              # renomme package_folder -> ton nom de paquet
+cp .env.sample .env            # then fill in PACKAGE_NAME
+make init_project              # renames package_folder -> your package name
 
-make local_setup               # uv sync : installe Python + les dépendances
-make run_all                   # préprocess -> train -> evaluate -> predict
-make run_api                   # l'API démarre sur http://127.0.0.1:8000
+make local_setup               # uv sync: installs Python + the dependencies
+make run_all                   # preprocess -> train -> evaluate -> predict
+make run_api                   # the API starts on http://127.0.0.1:8000
 ```
 
-`make run_all` fonctionne **sans aucun compte cloud** : le template génère un
-jeu de données synthétique, entraîne un modèle scikit-learn de référence et
-produit des prédictions. Remplace ensuite les briques une à une par les
-tiennes (voir [Adapter ce template](#-adapter-ce-template-à-ton-projet)).
+`make run_all` works with **no cloud account at all**: the template generates a
+synthetic dataset, trains a reference scikit-learn model and produces
+predictions. Replace the pieces one at a time with your own afterwards (see
+[Adapting this template](#-adapting-this-template)).
 
-`make init_project` est un script à usage unique : il renomme le paquet
-partout, puis **se supprime lui-même** ainsi que sa cible Makefile.
+`make init_project` is a one-shot script: it renames the package everywhere,
+then **deletes itself** along with its Makefile target.
 
 ---
 
-## 🗂️ Structure du projet
+## 🗂️ Project structure
 
 ```
 .
-├── package_folder/            # le paquet Python (renommé par init_project)
-│   ├── params.py              #   configuration : schéma, seuils, variables d'env
+├── package_folder/            # the Python package (renamed by init_project)
+│   ├── params.py              #   configuration: schema, thresholds, env vars
 │   ├── api/
-│   │   ├── fast.py            #   application FastAPI (lifespan, routes)
-│   │   └── schemas.py         #   contrat d'entrée/sortie Pydantic
+│   │   ├── fast.py            #   FastAPI application (lifespan, routes)
+│   │   └── schemas.py         #   Pydantic input/output contract
 │   ├── interface/
-│   │   ├── main.py            #   pipeline : preprocess / train / evaluate / pred
-│   │   └── workflow.py        #   orchestration Prefect
+│   │   ├── main.py            #   pipeline: preprocess / train / evaluate / pred
+│   │   └── workflow.py        #   Prefect orchestration
 │   └── ml_logic/
-│       ├── data.py            #   chargement, nettoyage, persistance
-│       ├── preprocessor.py    #   transformations scikit-learn
-│       ├── model.py           #   construction / entraînement / évaluation
-│       ├── registry.py        #   cycle de vie du modèle (local, MLflow)
-│       └── encoders.py        #   emplacement pour tes encodeurs maison
-├── make/                      # cibles Makefile par domaine
+│       ├── data.py            #   loading, cleaning, persistence
+│       ├── preprocessor.py    #   scikit-learn transformations
+│       ├── model.py           #   build / train / evaluate
+│       ├── registry.py        #   model lifecycle (local, MLflow)
+│       └── encoders.py        #   a place for your custom encoders
+├── make/                      # Makefile targets, grouped by domain
 ├── tests/
-│   ├── api/                   #   tests des 3 paliers (local, docker, cloud)
-│   ├── ml_logic/              #   tests unitaires du pipeline
-│   └── infrastructure/        #   vérifications de l'installation GCP
-├── notebooks/                 # exploration + usage de l'API
-├── models/                    # registre local (ignoré par git)
-├── scripts/                   # init_project, provisionnement VM
-├── .github/workflows/ci.yml   # CI : lint, tests, build Docker
-├── pyproject.toml             # dépendances, ruff, pytest
-└── uv.lock                    # versions verrouillées (à committer)
+│   ├── api/                   #   the 3 tiers (local, docker, cloud)
+│   ├── ml_logic/              #   unit tests of the pipeline
+│   └── infrastructure/        #   GCP setup checks
+├── notebooks/                 # exploration + API usage
+├── models/                    # local registry (git-ignored)
+├── scripts/                   # init_project, VM provisioning
+├── .github/workflows/ci.yml   # CI: lint, tests, Docker build
+├── pyproject.toml             # dependencies, ruff, pytest
+└── uv.lock                    # locked versions (committed)
 ```
 
-`make help` liste les **56 cibles** disponibles.
+`make help` lists the **56 available targets**.
 
 ---
 
 ## ⚙️ Configuration
 
-Tout passe par `.env` (ignoré par git — voir `.env.sample` pour le contrat
-complet et commenté). Les variables qui comptent au démarrage :
+Everything goes through `.env` (git-ignored — see `.env.sample` for the full,
+commented contract). The variables that matter at startup:
 
-| Variable | Défaut | Rôle |
+| Variable | Default | Purpose |
 |---|---|---|
-| `PACKAGE_NAME` | — | Nom du paquet, utilisé une seule fois par `make init_project` |
-| `MODEL_TARGET` | `local` | Où sont stockés les modèles : `local`, `gcs` ou `mlflow` |
-| `DATA_SOURCE` | `toy` | Source des données : `toy` (synthétique) ou `bigquery` |
-| `DATA_SIZE` | `2000` | Taille du jeu synthétique (`1k`, `200k`, `all`…) |
-| `MAE_THRESHOLD` | `3.0` | Seuil de qualité au-dessous duquel un modèle est promu |
-| `MLFLOW_*`, `GCP_*`, `BUCKET_NAME` | — | À renseigner seulement pour le cloud |
+| `PACKAGE_NAME` | — | Package name, used once by `make init_project` |
+| `MODEL_TARGET` | `local` | Where models are stored: `local`, `gcs` or `mlflow` |
+| `DATA_SOURCE` | `toy` | Data source: `toy` (synthetic) or `bigquery` |
+| `DATA_SIZE` | `2000` | Size of the synthetic dataset (`1k`, `200k`, `all`…) |
+| `MAE_THRESHOLD` | `3.0` | Quality bar below which a model gets promoted |
+| `MLFLOW_*`, `GCP_*`, `BUCKET_NAME` | — | Only needed for the cloud |
 
-**Les valeurs par défaut suffisent à tout faire tourner en local.** Aucune
-variable n'est obligatoire tant que tu restes en `MODEL_TARGET=local` et
-`DATA_SOURCE=toy`.
+**The defaults are enough to run everything locally.** No variable is mandatory
+as long as you stay on `MODEL_TARGET=local` and `DATA_SOURCE=toy`.
 
 ---
 
-## 🧪 Le pipeline
+## 🧪 The pipeline
 
-Quatre étapes, exécutables indépendamment — chacune persiste son résultat, donc
-`make run_train` fonctionne même si `make run_preprocess` a tourné dans un
-autre terminal :
+Four steps, runnable independently — each one persists its result, so
+`make run_train` works even if `make run_preprocess` ran in another terminal:
 
 ```bash
-make run_preprocess    # charge, nettoie et sauvegarde -> data/processed/
-make run_train         # entraîne, sauvegarde le modèle + ses métriques
-make run_evaluate      # évalue le dernier modèle
-make run_pred          # prédit sur un exemple
+make run_preprocess    # load, clean and save -> data/processed/
+make run_train         # fit, save the model and its metrics
+make run_evaluate      # evaluate the latest model
+make run_pred          # predict on a sample
 
-make run_all           # les quatre d'affilée
+make run_all           # all four in a row
 ```
 
-Les modèles et les métriques atterrissent dans `models/` (JSON pour les
-métriques, pickle pour les modèles). Le **modèle le plus récent** est toujours
-celui qui est servi, choisi par date de modification.
+Models and metrics land in `models/` (JSON for metrics, pickle for models). The
+**most recent model** is always the one being served, chosen by modification
+time.
 
 ### Orchestration (Prefect)
 
-`make run_workflow` exécute le cycle complet : préparation des données,
-évaluation du modèle en production, réentraînement, promotion si le nouveau
-modèle fait mieux, notification. Configure `EVALUATION_START_DATE` dans `.env`
-pour définir la période d'évaluation.
+`make run_workflow` runs the full cycle: data preparation, evaluation of the
+model in production, retraining, promotion if the new model does better, and a
+notification. Set `EVALUATION_START_DATE` in `.env` to define the evaluation
+period.
 
 ---
 
-## 🌐 L'API
+## 🌐 The API
 
 ```bash
 make run_api
@@ -142,65 +139,64 @@ make run_api
 
 | Route | Description |
 |---|---|
-| `GET /` | Santé du service |
-| `GET /model` | État du modèle chargé, et cause de l'échec le cas échéant |
-| `PUT /model` | Recharge le modèle à chaud, sans redémarrer le service |
-| `GET /predict` | Prédiction pour une course (paramètres de requête) |
-| `POST /predict_batch` | Prédiction pour une liste de courses |
+| `GET /` | Service health |
+| `GET /model` | State of the loaded model, and the cause of failure if any |
+| `PUT /model` | Hot-swaps the model, with no service restart |
+| `GET /predict` | Prediction for one trip (query parameters) |
+| `POST /predict_batch` | Prediction for a list of trips |
 
-Documentation interactive : <http://127.0.0.1:8000/docs>.
+Interactive documentation: <http://127.0.0.1:8000/docs>.
 
-**L'API démarre même sans modèle** : `/predict` répond alors `503` avec la cause
-exacte, au lieu de faire échouer le conteneur au démarrage. C'est ce qui la
-rend déployable et testable indépendamment de l'entraînement.
+**The API starts even with no model**: `/predict` then answers `503` with the
+exact cause, instead of failing the container at startup. That is what makes it
+deployable and testable independently of training.
 
-### Les 3 paliers de validation
+### The 3 validation tiers
 
-Chaque palier attrape ce que le précédent ne peut pas voir :
+Each tier catches what the previous one cannot see:
 
 ```bash
-# 1. En mémoire : logique et contrat d'API
+# 1. In memory: logic and API contract
 make test_api_local
 
-# 2. Dans le conteneur : dépendances manquantes, image cassée
+# 2. Inside the container: missing dependencies, broken image
 make docker_build_local
 make docker_run_local
 make test_api_docker
 
-# 3. En production : URL réellement déployée
+# 3. In production: the actually deployed URL
 make test_api_cloud
 ```
 
 ### Tests
 
 ```bash
-make test_all            # exécution par défaut : 46 tests, aucun service requis
-make test_integration    # les 18 tests qui exigent GCP / Docker / une API déployée
+make test_all            # default run: 46 tests, no service required
+make test_integration    # the 18 tests needing GCP / Docker / a deployed API
 make lint                # ruff check
 make format              # ruff format
 ```
 
-Les tests exigeant un service externe portent le marqueur `integration` et sont
-**exclus par défaut** : c'est ce qui permet à la CI de tourner sans aucun
-secret.
+Tests requiring an external service carry the `integration` marker and are
+**excluded by default**: that is what lets the CI run with no secrets at all.
 
 ---
 
-## ☁️ Déploiement GCP
+## ☁️ GCP deployment
 
-### VM d'entraînement
+### Training VM
 
 ```bash
-make vm_create      # crée la VM et le service account associé
-make vm_setup       # provisionne la VM (uv, zsh, direnv)
+make vm_create      # creates the VM and its service account
+make vm_setup       # provisions the VM (uv, zsh, direnv)
 make vm_connect     # SSH
 ```
 
-> ⚠️ **Gestion du coût** : `make vm_stop` dès que tu arrêtes de travailler
-> (le CPU n'est plus facturé, les fichiers sont conservés), `make vm_start`
-> pour reprendre, `make vm_delete` en fin de projet.
+> ⚠️ **Cost management**: run `make vm_stop` as soon as you stop working (the CPU
+> is no longer billed, files are kept), `make vm_start` to resume, and
+> `make vm_delete` at the end of the project.
 
-### Données et artefacts
+### Data and artefacts
 
 ```bash
 make bigquery_create_dataset
@@ -208,88 +204,88 @@ make gcs_create_bucket
 make iam_setup_service_account
 ```
 
-### API en production
+### API in production
 
 ```bash
-make docker_build_prod      # image linux/amd64
-make docker_push_prod       # vers Artifact Registry
-make cloudrun_deploy        # vers Cloud Run
-make cloudrun_url           # récupère l'URL à mettre dans SERVICE_URL
+make docker_build_prod      # linux/amd64 image
+make docker_push_prod       # to Artifact Registry
+make cloudrun_deploy        # to Cloud Run
+make cloudrun_url           # fetch the URL for SERVICE_URL
 ```
 
 ---
 
-## 🔁 Intégration continue
+## 🔁 Continuous integration
 
-`.github/workflows/ci.yml` s'exécute à chaque push, et comporte trois jobs :
+`.github/workflows/ci.yml` runs on every push and has three jobs:
 
-| Job | Vérifie |
+| Job | Checks |
 |---|---|
 | **Lint** | `ruff check` + `ruff format --check` |
-| **Tests** | Les 46 tests, sans aucun secret (le `.env` est recréé depuis `.env.sample`) |
-| **Docker** | L'image se construit **et** l'API répond réellement dans le conteneur |
+| **Tests** | The 46 tests, with no secrets (the `.env` is recreated from `.env.sample`) |
+| **Docker** | The image builds **and** the API actually answers inside the container |
 
-Le job Docker est le seul endroit où le `Dockerfile` est validé
-automatiquement — utile quand l'étape 2 des tests n'est pas faite en local.
+The Docker job is the only place where the `Dockerfile` is validated
+automatically — handy when step 2 of the API tests is not run locally.
 
 ---
 
-## 🌿 Workflow git
+## 🌿 Git workflow
 
-Le dépôt suit une règle simple : **un lot de travail = une branche = un
+The repository follows one simple rule: **one work batch = one branch = one
 commit**.
 
 ```bash
-git switch -c fix/mon-sujet          # préfixes : chore, fix, feat, ci, refactor, docs
-# ... travail, `make test_all`, `make lint` ...
+git switch -c fix/my-topic           # prefixes: chore, fix, feat, ci, refactor, docs
+# ... work, `make test_all`, `make lint` ...
 git commit -m "fix: ..."
-git push -u origin fix/mon-sujet     # la CI tourne sur la branche
+git push -u origin fix/my-topic      # the CI runs on the branch
 
 git switch main
-git merge --no-ff fix/mon-sujet      # --no-ff : garde la trace du lot
+git merge --no-ff fix/my-topic       # --no-ff: keeps the batch visible
 git push origin main
-git branch -d fix/mon-sujet          # -d refuse une branche non mergée
-git push origin --delete fix/mon-sujet
+git branch -d fix/my-topic           # -d refuses an unmerged branch
+git push origin --delete fix/my-topic
 ```
 
-`--no-ff` n'est pas cosmétique : sans lui, git fait un *fast-forward*, le lot
-disparaît de l'historique et devient impossible à annuler d'un bloc
+`--no-ff` is not cosmetic: without it, git performs a *fast-forward*, the batch
+disappears from the history and becomes impossible to revert as a whole
 (`git revert -m 1 <merge>`).
 
 ---
 
-## 🔧 Dépannage
+## 🔧 Troubleshooting
 
-| Symptôme | Cause et solution |
+| Symptom | Cause and fix |
 |---|---|
-| `make: command not found` | Sous Windows : travaille dans WSL2, pas en Git Bash natif |
-| `503 Aucun modèle disponible` | Normal avant le premier entraînement : `make run_train` |
-| `SERVICE_URL is not set` | Récupère l'URL avec `make cloudrun_url`, puis renseigne `SERVICE_URL` |
-| Les tests GCP échouent par défaut | Ils sont marqués `integration`. Lance `make test_integration` après avoir configuré GCP |
-| `uv sync --frozen` échoue | `uv.lock` ne correspond plus à `pyproject.toml` : `uv lock` |
-| Tous les fichiers apparaissent modifiés | Fins de ligne CRLF/LF. `.gitattributes` les normalise : `git add --renormalize .` |
-| `Permission denied` au push | Le token GitHub lui manque un scope (`Contents`, `Workflows`…) |
-| `make: No rule to make target` | La cible a été renommée : `make help` liste les cibles réelles |
+| `make: command not found` | On Windows: work inside WSL2, not native Git Bash |
+| `503 No model available` | Expected before the first training run: `make run_train` |
+| `SERVICE_URL is not set` | Fetch the URL with `make cloudrun_url`, then set `SERVICE_URL` |
+| The GCP tests fail by default | They are marked `integration`. Run `make test_integration` once GCP is configured |
+| `uv sync --frozen` fails | `uv.lock` no longer matches `pyproject.toml`: `uv lock` |
+| Every file shows as modified | CRLF/LF line endings. `.gitattributes` normalises them: `git add --renormalize .` |
+| `Permission denied` on push | The GitHub token is missing a scope (`Contents`, `Workflows`…) |
+| `make: No rule to make target` | The target was renamed: `make help` lists the real ones |
 
 ---
 
-## 🎯 Adapter ce template à ton projet
+## 🎯 Adapting this template
 
-Le template est exécutable de bout en bout, mais volontairement générique.
-Pour le réorienter, dans cet ordre :
+The template runs end to end, but is deliberately generic. To reorient it, in
+this order:
 
-1. **`params.py`** — déclare tes colonnes (`NUMERIC_FEATURES`,
-   `CATEGORICAL_FEATURES`, `TARGET_COLUMN`), tes types (`DTYPES_RAW`) et tes
-   seuils métier. Tout le reste du code s'y réfère.
-2. **`ml_logic/data.py`** — remplace `generate_toy_data()` par ton chargement
-   réel (le TODO de `get_raw_data()` contient la requête BigQuery à compléter),
-   et adapte `clean_data()` à tes règles de nettoyage.
-3. **`ml_logic/preprocessor.py`** — adapte les transformations à tes colonnes.
-4. **`ml_logic/model.py`** — remplace `Ridge` par ton estimateur. Le reste du
-   pipeline n'a pas à changer : `train(**model_params)` transmet les
-   hyperparamètres.
-5. **`api/schemas.py`** — aligne le contrat d'entrée sur tes features.
-6. **`ml_logic/registry.py`** — implémente le chargement MLflow ou GCS si tu
-   veux sortir du registre local.
-7. **Documentation Swagger** — le titre et la description de l'API sont dans
+1. **`params.py`** — declare your columns (`NUMERIC_FEATURES`,
+   `CATEGORICAL_FEATURES`, `TARGET_COLUMN`), your types (`DTYPES_RAW`) and your
+   business thresholds. The rest of the code refers to them.
+2. **`ml_logic/data.py`** — replace `generate_toy_data()` with your real
+   loading logic (the TODO in `get_raw_data()` holds the BigQuery query to
+   complete), and adapt `clean_data()` to your cleaning rules.
+3. **`ml_logic/preprocessor.py`** — adapt the transformations to your columns.
+4. **`ml_logic/model.py`** — replace `Ridge` with your own estimator. The rest
+   of the pipeline does not change: `train(**model_params)` forwards the
+   hyperparameters.
+5. **`api/schemas.py`** — align the input contract with your features.
+6. **`ml_logic/registry.py`** — implement MLflow or GCS loading if you want to
+   move beyond the local registry.
+7. **Swagger documentation** — the API title and description live in
    `api/fast.py`.
