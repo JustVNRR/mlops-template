@@ -47,6 +47,7 @@ async def client(tmp_path, monkeypatch):
 # SANTÉ
 # ==============================================================================
 
+
 async def test_root_is_up(client):
     response = await client.get("/")
 
@@ -73,6 +74,7 @@ async def test_model_reports_being_loaded(client):
 # ==============================================================================
 # /predict
 # ==============================================================================
+
 
 async def test_predict_is_up(client):
     response = await client.get("/predict", params=TEST_PARAMS)
@@ -120,6 +122,7 @@ async def test_predict_rejects_missing_field(client):
 # ==============================================================================
 # /predict_batch
 # ==============================================================================
+
 
 async def test_predict_batch_returns_one_value_per_input(client):
     payload = [TEST_PARAMS, {**TEST_PARAMS, "distance_km": 12.5}]

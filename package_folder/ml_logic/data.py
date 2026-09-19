@@ -63,11 +63,11 @@ def generate_toy_data(n_samples: int | None = None, seed: int = 42) -> pd.DataFr
     is_weekend = np.isin(day_of_week, ["saturday", "sunday"])
 
     fare = (
-        3.0                              # prise en charge
-        + 1.8 * distance_km              # tarif au kilomètre
-        + 0.4 * passengers               # supplément passager
-        + 2.5 * is_night                 # majoration de nuit
-        + 1.5 * is_weekend               # majoration week-end
+        3.0  # prise en charge
+        + 1.8 * distance_km  # tarif au kilomètre
+        + 0.4 * passengers  # supplément passager
+        + 2.5 * is_night  # majoration de nuit
+        + 1.5 * is_weekend  # majoration week-end
         + rng.normal(0, 1.5, n_samples)  # bruit irréductible
     )
 
@@ -207,10 +207,7 @@ def load_processed_data(path: Path | None = None) -> pd.DataFrame:
     path = path or PROCESSED_DATA_PATH
 
     if not path.is_file():
-        raise FileNotFoundError(
-            f"❌ Aucune donnée prétraitée dans {path}\n"
-            f"   → Lance d'abord : make run_preprocess"
-        )
+        raise FileNotFoundError(f"❌ Aucune donnée prétraitée dans {path}\n   → Lance d'abord : make run_preprocess")
 
     return pd.read_csv(path)
 

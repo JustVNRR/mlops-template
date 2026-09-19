@@ -19,6 +19,7 @@ def dataset():
 # PRÉPROCESSEUR
 # ==============================================================================
 
+
 def test_preprocessor_covers_every_feature():
     """
     Chaque feature déclarée dans params.py doit être effectivement transformée.
@@ -45,6 +46,7 @@ def test_preprocess_features_returns_a_numeric_matrix(dataset):
 # ==============================================================================
 # MODÈLE
 # ==============================================================================
+
 
 def test_model_embeds_its_preprocessor(dataset):
     """
@@ -111,6 +113,7 @@ def test_model_params_are_forwarded_to_the_estimator():
 # ==============================================================================
 # MÉTRIQUES
 # ==============================================================================
+
 
 def test_evaluate_model_returns_python_floats(dataset):
     """

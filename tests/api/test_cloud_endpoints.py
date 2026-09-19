@@ -32,6 +32,7 @@ def service_url() -> str:
 # SANTÉ
 # ==============================================================================
 
+
 async def test_root_is_up(service_url):
     async with AsyncClient(base_url=service_url, timeout=10.0) as client:
         response = await client.get("/")
@@ -49,6 +50,7 @@ async def test_root_returns_greeting(service_url):
 # ==============================================================================
 # PRÉDICTION
 # ==============================================================================
+
 
 async def test_predict_is_up(service_url):
     async with AsyncClient(base_url=service_url, timeout=10.0) as client:

@@ -56,8 +56,7 @@ def _int(name: str, default: int | None = None) -> int | None:
         return int(raw)
     except ValueError:
         raise ValueError(
-            f"❌ {name} doit être un entier, reçu : {raw!r}\n"
-            f"   → Corrige {name} dans ton fichier .env."
+            f"❌ {name} doit être un entier, reçu : {raw!r}\n   → Corrige {name} dans ton fichier .env."
         ) from None
 
 
@@ -70,8 +69,7 @@ def _float(name: str, default: float | None = None) -> float | None:
         return float(raw)
     except ValueError:
         raise ValueError(
-            f"❌ {name} doit être un nombre, reçu : {raw!r}\n"
-            f"   → Corrige {name} dans ton fichier .env."
+            f"❌ {name} doit être un nombre, reçu : {raw!r}\n   → Corrige {name} dans ton fichier .env."
         ) from None
 
 

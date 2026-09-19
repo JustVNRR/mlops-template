@@ -52,7 +52,7 @@ def _to_jsonable(obj: Any) -> Any:
     if isinstance(obj, (list, tuple, set)):
         return [_to_jsonable(v) for v in obj]
     if isinstance(obj, np.generic):
-        return obj.item()          # np.float64 -> float, np.int64 -> int
+        return obj.item()  # np.float64 -> float, np.int64 -> int
     if isinstance(obj, np.ndarray):
         return obj.tolist()
     if isinstance(obj, Path):
@@ -178,10 +178,7 @@ def load_model(stage: str = DEFAULT_ALIAS) -> Any | None:
 
         model_path = _latest_file(MODELS_DIR, pattern="*.pkl")
         if model_path is None:
-            print(
-                f"❌ No model found in {MODELS_DIR}\n"
-                f"   → Entraîne-en un d'abord : `make run_train`"
-            )
+            print(f"❌ No model found in {MODELS_DIR}\n   → Entraîne-en un d'abord : `make run_train`")
             return None
 
         print(f"✅ Loading model: {model_path.name}")
@@ -253,11 +250,7 @@ def mlflow_set_alias(version: str | int | None = None, alias: str = DEFAULT_ALIA
         version=str(version),
     )
 
-    print(
-        Fore.GREEN
-        + f"✅ {MLFLOW_MODEL_NAME} version {version} is now aliased as '{alias}'"
-        + Style.RESET_ALL
-    )
+    print(Fore.GREEN + f"✅ {MLFLOW_MODEL_NAME} version {version} is now aliased as '{alias}'" + Style.RESET_ALL)
     return None
 
 

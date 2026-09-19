@@ -86,12 +86,6 @@ ignore = [
   "E501",  # longueur de ligne : géré par le formatteur, pas par le linter
 ]
 
-[tool.ruff.lint.per-file-ignores]
-# Le template utilise `from package_folder.params import *` : stars imports
-# assumés pour l'instant (F403 = import étoile, F405 = nom possiblement issu
-# d'un import étoile). À retirer lors du passage aux imports explicites.
-"package_folder/**/*.py" = ["F403", "F405"]
-
 [tool.ruff.lint.isort]
 known-first-party = ["package_folder"]
 
