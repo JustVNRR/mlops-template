@@ -1,8 +1,8 @@
 # 🚀 {{ project_name }}
 
-A Machine Learning project: training, experiment tracking, a serving API and GCP
-deployment — driven by a Makefile, checked by a CI, and **runnable straight
-away, with no cloud account**.
+A Machine Learning project: training, experiment tracking and a serving API{% if 'gcp' in modules %},
+with Google Cloud deployment paths{% endif %} — driven by a Makefile, checked by
+a CI, and **runnable straight away, with no cloud account**.
 
 Generated from the
 [mlops-template](https://github.com/JustVNRR/mlops-template) Copier template.
@@ -17,7 +17,8 @@ Generated from the
 | **uv** | Python environments and dependencies | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
 {% if 'docker' in modules %}| **Docker** | Step 2 of the API tests, and the image build | [Docker Desktop](https://www.docker.com/products/docker-desktop/) |
 {% endif %}| **git** | Obviously | — |
-| **gcloud CLI** | *Optional* — only for GCP | [Install](https://cloud.google.com/sdk/docs/install) |
+{% if 'gcp' in modules %}| **gcloud CLI** | Everything under `make/gcp.mk`, `vm.mk`, `bigquery.mk`, `cloudrun.mk` | [Install](https://cloud.google.com/sdk/docs/install) |
+{% endif %}
 
 > **On Windows: use WSL2.** This project is *nix-first (make, bash, sed, Ubuntu
 > CI). In a native Git Bash terminal, `make` and `uv` are not installed by
@@ -75,10 +76,11 @@ predictions. Replace the pieces one at a time with your own afterwards (see
 ├── tests/
 │   ├── api/                   #   the validation tiers (local, cloud{% if 'docker' in modules %}, docker{% endif %})
 │   ├── ml_logic/              #   unit tests of the pipeline
-│   └── infrastructure/        #   GCP setup checks
+│   └── infrastructure/        #   environment checks
 ├── notebooks/                 # exploration + API usage
 ├── models/                    # local registry (git-ignored)
-├── scripts/                   # VM provisioning
+{% if 'gcp' in modules %}├── scripts/                   # VM provisioning
+{% endif %}
 {% if 'docker' in modules %}├── Dockerfile                 # the API image
 ├── docker-compose.yml         # local container, hot-reloaded
 {% endif %}├── .github/workflows/       # CI: lint, tests{% if 'docker' in modules %}, Docker build{% endif %}
@@ -97,12 +99,13 @@ commented contract). The variables that matter at startup:
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `MODEL_TARGET` | `local` | Where models are stored: `local`, `gcs` or `mlflow` |
-| `DATA_SOURCE` | `demo` | Data source: `demo` (synthetic) or `bigquery` |
+| `MODEL_TARGET` | `local` | Where models are stored: `local`{% if 'gcp' in modules %}, `gcs`{% endif %}{% if 'mlflow' in modules %}, `mlflow`{% endif %} |
+| `DATA_SOURCE` | `demo` | Data source: `demo` (synthetic){% if 'gcp' in modules %} or `bigquery`{% endif %} |
 | `DATA_SIZE` | `2000` | Size of the synthetic dataset (`1k`, `200k`, `all`…) |
 | `MAE_THRESHOLD` | `3.0` | Quality bar below which a model gets promoted |
 | `LOG_LEVEL` | `INFO` | Log verbosity: `DEBUG` adds the per-file chatter |
-| `MLFLOW_*`, `GCP_*`, `BUCKET_NAME` | — | Only needed for the cloud |
+{% if 'gcp' in modules %}| `GCP_*`, `BUCKET_NAME` | — | Only needed for the cloud |
+{% endif %}
 
 **The defaults are enough to run everything locally.** No variable is mandatory
 as long as you stay on `MODEL_TARGET=local` and `DATA_SOURCE=demo`.
@@ -197,7 +200,7 @@ Tests requiring an external service carry the `integration` marker and are
 
 ---
 
-## ☁️ GCP deployment
+{% if 'gcp' in modules %}## ☁️ GCP deployment
 
 ### Training VM
 
@@ -227,7 +230,7 @@ make docker_push_prod       # to Artifact Registry
 {% endif %}make cloudrun_deploy        # to Cloud Run
 make cloudrun_url           # fetch the URL for SERVICE_URL
 ```
-
+{% endif %}
 ---
 
 ## 🔁 Continuous integration
@@ -277,8 +280,9 @@ disappears from the history and becomes impossible to revert as a whole
 |---|---|
 | `make: command not found` | On Windows: work inside WSL2, not native Git Bash |
 | `503 No model available` | Expected before the first training run: `make run_train` |
-| `SERVICE_URL is not set` | Fetch the URL with `make cloudrun_url`, then set `SERVICE_URL` |
-| The GCP tests fail by default | They are marked `integration`. Run `make test_integration` once GCP is configured |
+{% if 'gcp' in modules %}| `SERVICE_URL is not set` | Fetch the URL with `make cloudrun_url`, then set `SERVICE_URL` |
+| The cloud tests fail by default | They are marked `integration`. Run `make test_integration` once the cloud access is configured |
+{% endif %}
 | `uv sync --frozen` fails | `uv.lock` no longer matches `pyproject.toml`: `uv lock` |
 | Every file shows as modified | CRLF/LF line endings. `.gitattributes` normalises them: `git add --renormalize .` |
 | `Permission denied` on push | The GitHub token is missing a scope (`Contents`, `Workflows`…) |
@@ -316,9 +320,10 @@ it is a **renaming plus a data source**, not a rewrite.
 2. **`ml_logic/demo_data.py`** — replace `generate_demo_data()` with your own, or
    delete the module once real data flows. Together with the schema block above,
    it is one of the only two places that know a domain.
-3. **`ml_logic/data.py`** — complete the TODO in `get_raw_data()` (the BigQuery
-   query), and replace the placeholder outlier rule of `clean_data()` with rules
-   that match your data.
+3. **`ml_logic/data.py`** — {% if 'gcp' in modules %}complete the TODO in
+   `get_raw_data()` (the BigQuery query), and replace{% else %}replace{% endif %}
+   the placeholder outlier rule of `clean_data()` with rules that match your
+   data.
 4. **`ml_logic/preprocessor.py`** — adapt the transformations to your columns.
 5. **`ml_logic/model.py`** — replace `Ridge` with your own estimator. The rest
    of the pipeline does not change: `train(**model_params)` forwards the

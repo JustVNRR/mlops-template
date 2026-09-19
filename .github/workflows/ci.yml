@@ -189,14 +189,26 @@ jobs:
         working-directory: ${{ runner.temp }}/minimal
         run: |
           for f in Dockerfile .dockerignore docker-compose.yml make/docker.mk \
-                   tests/api/test_docker_endpoints.py .github/workflows/docker.yml; do
+                   tests/api/test_docker_endpoints.py .github/workflows/docker.yml \
+                   make/gcp.mk make/bigquery.mk make/vm.mk make/cloudrun.mk \
+                   scripts/setup_vm.sh \
+                   tests/infrastructure/test_gcp_setup.py \
+                   tests/api/test_cloud_endpoints.py ; do
             if [ -e "$f" ]; then echo "❌ $f should have been excluded"; exit 1; fi
           done
-          if grep -rn -i "docker" README.md .github/ .env.sample ; then
-            echo "❌ the README, a workflow or .env.sample still mentions Docker"
+
+          # A surviving cloud import only shows up at runtime, on someone else's
+          # machine: check for it here.
+          if grep -rn "google\.cloud" src/ tests/ ; then
+            echo "❌ a source file still imports a cloud package"
             exit 1
           fi
-          echo "✅ nothing from the docker building block survived"
+
+          if grep -rn -i "docker\|gcp\|bigquery\|gcloud" README.md .github/ .env.sample ; then
+            echo "❌ the README, a workflow or .env.sample still mentions an optional block"
+            exit 1
+          fi
+          echo "✅ nothing from the docker or gcp building block survived"
 
       - name: Install dependencies
         working-directory: ${{ runner.temp }}/minimal

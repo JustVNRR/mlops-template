@@ -25,7 +25,7 @@ dependencies = [
   "pandas>=2.2",
   "numpy>=1.26",
   "scikit-learn>=1.5",
-  # Required for the pandas <-> BigQuery interop (load_table_from_dataframe
+{% if 'gcp' in modules %}  # Required for the pandas <-> BigQuery interop (load_table_from_dataframe
   # and result.to_dataframe). Without them, the BQ calls fail at runtime.
   "pyarrow>=16.0",
   "db-dtypes>=1.2",
@@ -33,6 +33,7 @@ dependencies = [
   # --- Google Cloud ---
   "google-cloud-bigquery>=3.25",
   "google-cloud-storage>=2.17",
+{% endif %}
 
   # --- Model lifecycle ---
   "mlflow>=2.14",

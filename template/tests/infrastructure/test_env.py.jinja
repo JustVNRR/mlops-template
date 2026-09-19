@@ -20,21 +20,16 @@ def test_critical_env_variables_are_set():
     """
     Verify that critical variables are filled and not left empty.
 
-    Marked `integration`: this test requires a FULLY configured project,
-    including GCP. On a development machine without a cloud account it would
-    fail for a perfectly legitimate reason. It must therefore neither block the
-    default run nor fail the CI.
+    Marked `integration`: this test requires a FULLY configured project, so it
+    fails on a development machine for a perfectly legitimate reason. It must
+    therefore neither block the default run nor fail the CI.
 
-    → Run it with `make test_integration` once GCP is configured.
+    → Run it with `make test_integration` once your .env is filled in.
     """
     load_dotenv(ENV_PATH)
 
     # Add here any variable your project absolutely requires.
-    critical_vars = [
-        "GCP_PROJECT",
-        "GCP_REGION",
-        "BUCKET_NAME",
-    ]
+    critical_vars = [{% if 'gcp' in modules %}"GCP_PROJECT", "GCP_REGION", "BUCKET_NAME"{% endif %}]
 
     for var in critical_vars:
         value = os.getenv(var)

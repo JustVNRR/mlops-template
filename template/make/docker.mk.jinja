@@ -1,5 +1,5 @@
 # ==============================================================================
-# DOCKER & ARTIFACT REGISTRY COMMANDS
+# CONTAINER COMMANDS
 # ==============================================================================
 
 docker_build_local: ## Build the Docker image locally for testing
@@ -13,7 +13,7 @@ docker_run_local: ## Run the local Docker container on port 8080
 	@echo "👉 Go to http://localhost:8080"
 	docker run -it -e PORT=8000 -p 8080:8000 $(GAR_IMAGE):dev
 
-artifact_registry_create: ## Create the Docker repository in Artifact Registry
+{% if 'gcp' in modules %}artifact_registry_create: ## Create the Docker repository in Artifact Registry
 	@echo "📦 Creating Artifact Registry repository $(ARTIFACTSREPO)..."
 	gcloud artifacts repositories create $(ARTIFACTSREPO) \
 		--repository-format=docker \
@@ -42,3 +42,4 @@ docker_build_prod: ## Build the Docker image for production (linux/amd64)
 docker_push_prod: ## Push the production image to Artifact Registry
 	@echo "🚀 Pushing image to Artifact Registry..."
 	docker push $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/$(ARTIFACTSREPO)/$(GAR_IMAGE):prod
+{% endif %}

@@ -95,10 +95,10 @@ CHUNK_SIZE = _int("CHUNK_SIZE", 100_000)
 MODEL_TARGET = (_optional("MODEL_TARGET") or "local").lower()
 # Source of the raw data:
 #   "demo"     -> synthetic dataset generated in memory, no cloud account needed
-#   "bigquery" -> query against BigQuery, requires GCP_PROJECT and BQ_DATASET
-DATA_SOURCE = (_optional("DATA_SOURCE") or "demo").lower()
+{% if 'gcp' in modules %}#   "bigquery" -> query against BigQuery, requires GCP_PROJECT and BQ_DATASET
+{% endif %}DATA_SOURCE = (_optional("DATA_SOURCE") or "demo").lower()
 
-# --- GCP infrastructure ---
+{% if 'gcp' in modules %}# --- GCP infrastructure ---
 GCP_PROJECT = _optional("GCP_PROJECT")
 GCP_REGION = _optional("GCP_REGION")
 BQ_DATASET = _optional("BQ_DATASET")
@@ -106,7 +106,7 @@ BQ_REGION = _optional("BQ_REGION")
 BUCKET_NAME = _optional("BUCKET_NAME")
 INSTANCE = _optional("INSTANCE")
 
-# --- MLflow & Prefect ---
+{% endif %}# --- MLflow & Prefect ---
 MLFLOW_TRACKING_URI = _optional("MLFLOW_TRACKING_URI")
 MLFLOW_EXPERIMENT = _optional("MLFLOW_EXPERIMENT")
 MLFLOW_MODEL_NAME = _optional("MLFLOW_MODEL_NAME")
@@ -119,18 +119,22 @@ EVALUATION_START_DATE = _optional("EVALUATION_START_DATE")
 # pipeline milestones; DEBUG adds the per-file chatter.
 LOG_LEVEL = (_optional("LOG_LEVEL") or "INFO").upper()
 
-# --- Docker & Artifact Registry ---
+{% if 'gcp' in modules or 'docker' in modules %}# --- Container image ---
+# The image name is needed to build locally, and again to deploy.
 GAR_IMAGE = _optional("GAR_IMAGE")
+{% if 'gcp' in modules %}# Memory granted to the Cloud Run service
 GAR_MEMORY = _optional("GAR_MEMORY")
-
-# --- Notifications (webhook) ---
+{% endif %}
+{% endif %}# --- Notifications (webhook) ---
 NOTIFY_BASE_URL = _optional("NOTIFY_BASE_URL")
 NOTIFY_CHANNEL = _optional("NOTIFY_CHANNEL")
 NOTIFY_AUTHOR = _optional("NOTIFY_AUTHOR")
 
 ##################  VALIDATIONS  ##################
-VALID_MODEL_TARGETS = ("local", "gcs", "mlflow")
-VALID_DATA_SOURCES = ("demo", "bigquery")
+# Lists rather than tuples: a single-element tuple needs a trailing comma, and
+# the trailing comma forces the formatter to explode the line.
+VALID_MODEL_TARGETS = ["local"{% if 'gcp' in modules %}, "gcs"{% endif %}{% if 'mlflow' in modules %}, "mlflow"{% endif %}]
+VALID_DATA_SOURCES = ["demo"{% if 'gcp' in modules %}, "bigquery"{% endif %}]
 VALID_LOG_LEVELS = ("TRACE", "DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR", "CRITICAL")
 
 if MODEL_TARGET not in VALID_MODEL_TARGETS:

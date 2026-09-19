@@ -135,24 +135,29 @@ def test_save_results_accepts_partial_payloads(local_registry):
 # ==============================================================================
 
 
-@pytest.mark.parametrize("target", ["gcs", "mlflow"])
-def test_save_model_raises_on_unimplemented_target(local_registry, monkeypatch, target):
+# Targets that this project cannot serve: the building block providing them was
+# left out at generation time.
+UNIMPLEMENTED_TARGETS = [{% if 'gcp' in modules %}"gcs", {% endif %}{% if 'mlflow' in modules %}"mlflow"{% endif %}]
+
+
+def test_save_model_raises_on_unimplemented_target(local_registry, monkeypatch):
     """An unimplemented target must fail loudly, not silently."""
-    monkeypatch.setattr(registry, "MODEL_TARGET", target)
+    for target in UNIMPLEMENTED_TARGETS:
+        monkeypatch.setattr(registry, "MODEL_TARGET", target)
 
-    with pytest.raises(NotImplementedError, match=target):
-        registry.save_model(object())
+        with pytest.raises(NotImplementedError, match=target):
+            registry.save_model(object())
 
 
-@pytest.mark.parametrize("target", ["gcs", "mlflow"])
-def test_save_model_writes_nothing_on_unimplemented_target(local_registry, monkeypatch, target):
+def test_save_model_writes_nothing_on_unimplemented_target(local_registry, monkeypatch):
     """
     The target is validated BEFORE writing: otherwise a model would be left on
     disk while an exception is raised (a partial success).
     """
-    monkeypatch.setattr(registry, "MODEL_TARGET", target)
+    for target in UNIMPLEMENTED_TARGETS:
+        monkeypatch.setattr(registry, "MODEL_TARGET", target)
 
-    with pytest.raises(NotImplementedError):
-        registry.save_model(object())
+        with pytest.raises(NotImplementedError):
+            registry.save_model(object())
 
-    assert not (local_registry / "models").exists()
+        assert not (local_registry / "models").exists()
