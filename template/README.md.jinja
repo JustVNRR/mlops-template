@@ -1,7 +1,7 @@
 # 🚀 {{ project_name }}
 
-A Machine Learning project: training{% if 'mlflow' in modules %}, experiment tracking{% endif %} and a serving
-API{% if 'gcp' in modules %}, with Google Cloud deployment paths{% endif %} — driven by a Makefile,
+A Machine Learning project: training{% if with_mlflow %}, experiment tracking{% endif %} and a serving
+API{% if with_gcp %}, with Google Cloud deployment paths{% endif %} — driven by a Makefile,
 checked by a CI, and **runnable straight away, with no cloud account**.
 
 Generated from the
@@ -15,9 +15,9 @@ Generated from the
 |---|---|---|
 | **GNU make** | Every project command goes through it | `sudo apt install make` (preinstalled on macOS) |
 | **uv** | Python environments and dependencies | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
-{% if 'docker' in modules %}| **Docker** | Step 2 of the API tests, and the image build | [Docker Desktop](https://www.docker.com/products/docker-desktop/) |
+{% if with_docker %}| **Docker** | Step 2 of the API tests, and the image build | [Docker Desktop](https://www.docker.com/products/docker-desktop/) |
 {% endif %}| **git** | Obviously | — |
-{% if 'gcp' in modules %}| **gcloud CLI** | Everything under `make/gcp.mk`, `vm.mk`, `bigquery.mk`, `cloudrun.mk` | [Install](https://cloud.google.com/sdk/docs/install) |
+{% if with_gcp %}| **gcloud CLI** | Everything under `make/gcp.mk`, `vm.mk`, `bigquery.mk`, `cloudrun.mk` | [Install](https://cloud.google.com/sdk/docs/install) |
 {% endif %}
 
 > **On Windows: use WSL2.** This project is *nix-first (make, bash, sed, Ubuntu
@@ -41,7 +41,7 @@ make run_api                   # the API starts on http://127.0.0.1:8000
 ```
 
 Commit the `uv.lock` that `uv sync` just generated: the CI installs with
-`uv sync --frozen`, which fails without it{% if 'docker' in modules %}, and so
+`uv sync --frozen`, which fails without it{% if with_docker %}, and so
 does the `Dockerfile`{% endif %}.
 
 `make run_all` works with **no cloud account at all**: the project ships with a
@@ -63,27 +63,27 @@ predictions. Replace the pieces one at a time with your own afterwards (see
 │       │   ├── fast.py        #     FastAPI application (lifespan, routes)
 │       │   └── schemas.py     #     Pydantic input/output contract
 │       ├── interface/
-│       │   {% if 'prefect' in modules %}├{% else %}└{% endif %}── main.py        #     pipeline: preprocess / train / evaluate / pred
-{% if 'prefect' in modules %}│       │   └── workflow.py    #     Prefect orchestration
+│       │   {% if with_prefect %}├{% else %}└{% endif %}── main.py        #     pipeline: preprocess / train / evaluate / pred
+{% if with_prefect %}│       │   └── workflow.py    #     Prefect orchestration
 {% endif %}│       └── ml_logic/
 │           ├── demo_data.py   #     the synthetic dataset (the ONLY domain file)
 │           ├── data.py        #     loading, cleaning, persistence
 │           ├── preprocessor.py#    scikit-learn transformations
 │           ├── model.py       #     build / train / evaluate
-│           ├── registry.py    #     model lifecycle (local{% if 'mlflow' in modules %}, MLflow{% endif %})
+│           ├── registry.py    #     model lifecycle (local{% if with_mlflow %}, MLflow{% endif %})
 │           └── encoders.py    #     a place for your custom encoders
 ├── make/                      # Makefile targets, grouped by domain
 ├── tests/
-│   ├── api/                   #   the validation tiers (local, cloud{% if 'docker' in modules %}, docker{% endif %})
+│   ├── api/                   #   the validation tiers (local, cloud{% if with_docker %}, docker{% endif %})
 │   ├── ml_logic/              #   unit tests of the pipeline
 │   └── infrastructure/        #   environment checks
 ├── notebooks/                 # exploration + API usage
 ├── models/                    # local registry (git-ignored)
-{% if 'gcp' in modules %}├── scripts/                   # VM provisioning
+{% if with_gcp %}├── scripts/                   # VM provisioning
 {% endif %}
-{% if 'docker' in modules %}├── Dockerfile                 # the API image
+{% if with_docker %}├── Dockerfile                 # the API image
 ├── docker-compose.yml         # local container, hot-reloaded
-{% endif %}├── .github/workflows/       # CI: lint, tests{% if 'docker' in modules %}, Docker build{% endif %}
+{% endif %}├── .github/workflows/       # CI: lint, tests{% if with_docker %}, Docker build{% endif %}
 ├── pyproject.toml             # dependencies, ruff, pytest
 └── uv.lock                    # locked versions (generated, committed)
 ```
@@ -99,12 +99,12 @@ commented contract). The variables that matter at startup:
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `MODEL_TARGET` | `local` | Where models are stored: `local`{% if 'gcp' in modules %}, `gcs`{% endif %}{% if 'mlflow' in modules %}, `mlflow`{% endif %} |
-| `DATA_SOURCE` | `demo` | Data source: `demo` (synthetic){% if 'gcp' in modules %} or `bigquery`{% endif %} |
+| `MODEL_TARGET` | `local` | Where models are stored: `local`{% if with_gcp %}, `gcs`{% endif %}{% if with_mlflow %}, `mlflow`{% endif %} |
+| `DATA_SOURCE` | `demo` | Data source: `demo` (synthetic){% if with_gcp %} or `bigquery`{% endif %} |
 | `DATA_SIZE` | `2000` | Size of the synthetic dataset (`1k`, `200k`, `all`…) |
 | `MAE_THRESHOLD` | `3.0` | Quality bar below which a model gets promoted |
 | `LOG_LEVEL` | `INFO` | Log verbosity: `DEBUG` adds the per-file chatter |
-{% if 'gcp' in modules %}| `GCP_*`, `BUCKET_NAME` | — | Only needed for the cloud |
+{% if with_gcp %}| `GCP_*`, `BUCKET_NAME` | — | Only needed for the cloud |
 {% endif %}
 
 **The defaults are enough to run everything locally.** No variable is mandatory
@@ -140,7 +140,7 @@ recovers them, rather than merely returning a number.
 
 `ml_logic/demo_data.py` is the only file that knows about it.
 
-{% if 'prefect' in modules %}### Orchestration (Prefect)
+{% if with_prefect %}### Orchestration (Prefect)
 
 `make run_workflow` runs the full cycle: data preparation, evaluation of the
 model in production, retraining, promotion if the new model does better, and a
@@ -178,7 +178,7 @@ Each tier catches what the previous one cannot see:
 # In memory: logic and API contract
 make test_api_local
 
-{% if 'docker' in modules %}# Inside the container: missing dependencies, broken image
+{% if with_docker %}# Inside the container: missing dependencies, broken image
 make docker_build_local
 make docker_run_local
 make test_api_docker
@@ -201,7 +201,7 @@ Tests requiring an external service carry the `integration` marker and are
 
 ---
 
-{% if 'gcp' in modules %}## ☁️ GCP deployment
+{% if with_gcp %}## ☁️ GCP deployment
 
 ### Training VM
 
@@ -226,7 +226,7 @@ make iam_setup_service_account
 ### API in production
 
 ```bash
-{% if 'docker' in modules %}make docker_build_prod      # linux/amd64 image
+{% if with_docker %}make docker_build_prod      # linux/amd64 image
 make docker_push_prod       # to Artifact Registry
 {% endif %}make cloudrun_deploy        # to Cloud Run
 make cloudrun_url           # fetch the URL for SERVICE_URL
@@ -242,9 +242,9 @@ make cloudrun_url           # fetch the URL for SERVICE_URL
 |---|---|---|
 | `ci.yml` | **Lint** | `ruff check` + `ruff format --check` |
 | `ci.yml` | **Tests** | The tests, with no secrets (the `.env` is recreated from `.env.sample`) |
-{% if 'docker' in modules %}| `docker.yml` | **Docker** | The image builds **and** the API actually answers inside the container |
+{% if with_docker %}| `docker.yml` | **Docker** | The image builds **and** the API actually answers inside the container |
 {% endif %}
-{% if 'docker' in modules %}The Docker workflow is the only place where the `Dockerfile` is validated
+{% if with_docker %}The Docker workflow is the only place where the `Dockerfile` is validated
 automatically — handy when the container tier of the API tests is not run
 locally.{% else %}Both workflows run with no secrets at all: that is what lets a public
 fork stay green.{% endif %}
@@ -281,7 +281,7 @@ disappears from the history and becomes impossible to revert as a whole
 |---|---|
 | `make: command not found` | On Windows: work inside WSL2, not native Git Bash |
 | `503 No model available` | Expected before the first training run: `make run_train` |
-{% if 'gcp' in modules %}| `SERVICE_URL is not set` | Fetch the URL with `make cloudrun_url`, then set `SERVICE_URL` |
+{% if with_gcp %}| `SERVICE_URL is not set` | Fetch the URL with `make cloudrun_url`, then set `SERVICE_URL` |
 | The cloud tests fail by default | They are marked `integration`. Run `make test_integration` once the cloud access is configured |
 {% endif %}
 | `uv sync --frozen` fails | `uv.lock` no longer matches `pyproject.toml`: `uv lock` |
@@ -321,7 +321,7 @@ it is a **renaming plus a data source**, not a rewrite.
 2. **`ml_logic/demo_data.py`** — replace `generate_demo_data()` with your own, or
    delete the module once real data flows. Together with the schema block above,
    it is one of the only two places that know a domain.
-3. **`ml_logic/data.py`** — {% if 'gcp' in modules %}complete the TODO in
+3. **`ml_logic/data.py`** — {% if with_gcp %}complete the TODO in
    `get_raw_data()` (the BigQuery query), and replace{% else %}replace{% endif %}
    the placeholder outlier rule of `clean_data()` with rules that match your
    data.
@@ -331,7 +331,7 @@ it is a **renaming plus a data source**, not a rewrite.
    hyperparameters.
 6. **`api/schemas.py`** — align the input contract with your features. This file
    restates the schema by hand, so keep the two in step.
-7. **`ml_logic/registry.py`** — {% if 'mlflow' in modules or 'gcp' in modules %}implement MLflow or
+7. **`ml_logic/registry.py`** — {% if with_mlflow or with_gcp %}implement MLflow or
    GCS loading if you want to move beyond the local registry.{% else %}extend the
    local registry with the tracking service of your choice.{% endif %}
 8. **Swagger documentation** — the API title and description live in

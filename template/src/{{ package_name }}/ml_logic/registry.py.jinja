@@ -1,18 +1,18 @@
-{% if 'mlflow' in modules %}import functools
+{% if with_mlflow %}import functools
 {% endif %}import json
 import pickle
 import time
 from pathlib import Path
 from typing import Any
 
-{% if 'mlflow' in modules %}import mlflow
+{% if with_mlflow %}import mlflow
 {% endif %}import numpy as np
 from loguru import logger
-{% if 'mlflow' in modules %}from mlflow.tracking import MlflowClient
+{% if with_mlflow %}from mlflow.tracking import MlflowClient
 {% endif %}
 from {{ package_name }}.params import (
     LOCAL_REGISTRY_PATH,
-{% if 'mlflow' in modules %}    MLFLOW_EXPERIMENT,
+{% if with_mlflow %}    MLFLOW_EXPERIMENT,
     MLFLOW_MODEL_NAME,
     MLFLOW_TRACKING_URI,
 {% endif %}    MODEL_TARGET,
@@ -94,7 +94,7 @@ def _latest_file(directory: Path, pattern: str = "*") -> Path | None:
 def save_results(params: dict | None = None, metrics: dict | None = None) -> None:
     """
     Persist params & metrics locally on the hard drive.
-{% if 'mlflow' in modules %}    If MODEL_TARGET='mlflow', also persist them on MLflow.
+{% if with_mlflow %}    If MODEL_TARGET='mlflow', also persist them on MLflow.
 {% endif %}    """
     timestamp = time.strftime("%Y%m%d-%H%M%S")
 
@@ -107,7 +107,7 @@ def save_results(params: dict | None = None, metrics: dict | None = None) -> Non
         _write_json(METRICS_DIR / f"{timestamp}.json", metrics)
 
     logger.info(f"Results saved locally ({LOCAL_REGISTRY_PATH})")
-{% if 'mlflow' in modules %}    # 2. MLflow save.
+{% if with_mlflow %}    # 2. MLflow save.
     #    Reminder: log_params/log_metrics only make sense INSIDE an active run,
     #    which the @mlflow_run decorator on train()/evaluate() takes care of.
     if MODEL_TARGET == "mlflow":
@@ -121,19 +121,19 @@ def save_results(params: dict | None = None, metrics: dict | None = None) -> Non
 def save_model(model: Any) -> None:
     """
     Persist trained model locally on the hard drive.
-{% if 'gcp' in modules %}    - if MODEL_TARGET='gcs', also persist it in the GCS bucket
-{% endif %}{% if 'mlflow' in modules %}    - if MODEL_TARGET='mlflow', also persist it on MLflow
+{% if with_gcp %}    - if MODEL_TARGET='gcs', also persist it in the GCS bucket
+{% endif %}{% if with_mlflow %}    - if MODEL_TARGET='mlflow', also persist it on MLflow
 {% endif %}    """
     # The target is validated BEFORE anything is written: otherwise a model
     # would be left on disk while an exception is raised, producing a partial
     # success that is very hard to diagnose.
-{% if 'gcp' in modules %}    if MODEL_TARGET == "gcs":
+{% if with_gcp %}    if MODEL_TARGET == "gcs":
         raise NotImplementedError(
             "❌ MODEL_TARGET='gcs': uploading to Cloud Storage is not implemented.\n"
             "   → Implement it here (google.cloud.storage), or set MODEL_TARGET=local in your .env."
         )
 
-{% endif %}{% if 'mlflow' in modules %}    if MODEL_TARGET == "mlflow":
+{% endif %}{% if with_mlflow %}    if MODEL_TARGET == "mlflow":
         raise NotImplementedError(
             "❌ MODEL_TARGET='mlflow': logging the model is not implemented.\n"
             "   → Replace this error with the block below, or set MODEL_TARGET=local in your .env."
@@ -158,7 +158,7 @@ def save_model(model: Any) -> None:
     logger.info(f"Model saved locally: {model_path}")
 
 
-{% if 'mlflow' in modules %}# ==============================================================================
+{% if with_mlflow %}# ==============================================================================
 # 🏷️ MLFLOW ALIASES
 # ==============================================================================
 def mlflow_latest_version() -> str | None:
@@ -258,8 +258,8 @@ def load_model(stage: str = DEFAULT_ALIAS) -> Any | None:
     """
     Return a saved model:
     - locally the most recent one (by modification time)
-{% if 'gcp' in modules %}    - or from GCS (most recent one) if MODEL_TARGET == 'gcs'
-{% endif %}{% if 'mlflow' in modules %}    - or from MLflow, by alias, if MODEL_TARGET == 'mlflow'
+{% if with_gcp %}    - or from GCS (most recent one) if MODEL_TARGET == 'gcs'
+{% endif %}{% if with_mlflow %}    - or from MLflow, by alias, if MODEL_TARGET == 'mlflow'
 
     `stage` is a legacy parameter name: it designates the MLflow ALIAS (see
     mlflow_set_alias).
@@ -276,13 +276,13 @@ def load_model(stage: str = DEFAULT_ALIAS) -> Any | None:
         with open(model_path, "rb") as file:
             return pickle.load(file)
 
-{% if 'gcp' in modules %}    if MODEL_TARGET == "gcs":
+{% if with_gcp %}    if MODEL_TARGET == "gcs":
         raise NotImplementedError(
             "❌ MODEL_TARGET='gcs': downloading from Cloud Storage is not implemented.\n"
             "   → Implement it here (google.cloud.storage), or set MODEL_TARGET=local in your .env."
         )
 
-{% endif %}{% if 'mlflow' in modules %}    if MODEL_TARGET == "mlflow":
+{% endif %}{% if with_mlflow %}    if MODEL_TARGET == "mlflow":
         raise NotImplementedError(
             "❌ MODEL_TARGET='mlflow': loading from MLflow is not implemented.\n"
             "   → Use mlflow.<framework>.load_model with the alias, or set MODEL_TARGET=local in your .env."

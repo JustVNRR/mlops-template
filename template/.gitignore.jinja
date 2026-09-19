@@ -77,14 +77,14 @@ training_outputs/
 *.h5
 *.pkl
 *.model
-{% if 'mlflow' in modules %}# Local artefacts created by MLflow.
+{% if with_mlflow %}# Local artefacts created by MLflow.
 # MLflow 2 used a plain directory (mlruns/); MLflow 3 creates a SQLite database
 # by default (mlflow.db), along with its WAL/SHM companion files.
 mlruns/
 mlflow.db
 mlflow.db-*
 {% endif %}
-{% if 'prefect' in modules %}# Local artefacts created by Prefect.
+{% if with_prefect %}# Local artefacts created by Prefect.
 .prefect/
 {% endif %}
 

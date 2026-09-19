@@ -31,7 +31,7 @@ dependencies = [
   "pandas>=2.2",
   "numpy>=1.26",
   "scikit-learn>=1.5",
-{% if 'gcp' in modules %}  # Required for the pandas <-> BigQuery interop (load_table_from_dataframe
+{% if with_gcp %}  # Required for the pandas <-> BigQuery interop (load_table_from_dataframe
   # and result.to_dataframe). Without them, the BQ calls fail at runtime.
   "pyarrow>=16.0",
   "db-dtypes>=1.2",
@@ -42,8 +42,8 @@ dependencies = [
 {% endif %}
 
   # --- Model lifecycle ---
-{% if 'mlflow' in modules %}  "mlflow>=2.14",
-{% endif %}{% if 'prefect' in modules %}  "prefect>=2.19",
+{% if with_mlflow %}  "mlflow>=2.14",
+{% endif %}{% if with_prefect %}  "prefect>=2.19",
 {% endif %}
 
   # --- Utilities ---

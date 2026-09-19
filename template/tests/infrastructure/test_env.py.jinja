@@ -29,7 +29,7 @@ def test_critical_env_variables_are_set():
     load_dotenv(ENV_PATH)
 
     # Add here any variable your project absolutely requires.
-    critical_vars = [{% if 'gcp' in modules %}"GCP_PROJECT", "GCP_REGION", "BUCKET_NAME"{% endif %}]
+    critical_vars = [{% if with_gcp %}"GCP_PROJECT", "GCP_REGION", "BUCKET_NAME"{% endif %}]
 
     for var in critical_vars:
         value = os.getenv(var)

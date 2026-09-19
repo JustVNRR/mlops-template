@@ -19,23 +19,24 @@ _exclude:
   - models/models/
   - models/params/
   - models/metrics/
-  # Optional building blocks, removed by the `modules` answer. The pattern is
+  # Optional building blocks, removed by the flags derived from `modules` — not
+  # by the answer itself, since GCP also brings Docker. The pattern is
   # matched against the path as it will land in the project — so the templates
   # suffix is NOT part of it: `Dockerfile` matches `Dockerfile.jinja` too.
-  - "{% if 'docker' not in modules %}Dockerfile{% endif %}"
-  - "{% if 'docker' not in modules %}.dockerignore{% endif %}"
-  - "{% if 'docker' not in modules %}docker-compose.yml{% endif %}"
-  - "{% if 'docker' not in modules %}make/docker.mk{% endif %}"
-  - "{% if 'docker' not in modules %}tests/api/test_docker_endpoints.py{% endif %}"
-  - "{% if 'docker' not in modules %}.github/workflows/docker.yml{% endif %}"
-  - "{% if 'gcp' not in modules %}make/gcp.mk{% endif %}"
-  - "{% if 'gcp' not in modules %}make/bigquery.mk{% endif %}"
-  - "{% if 'gcp' not in modules %}make/vm.mk{% endif %}"
-  - "{% if 'gcp' not in modules %}make/cloudrun.mk{% endif %}"
-  - "{% if 'gcp' not in modules %}scripts/setup_vm.sh{% endif %}"
-  - "{% if 'gcp' not in modules %}tests/infrastructure/test_gcp_setup.py{% endif %}"
-  - "{% if 'gcp' not in modules %}tests/api/test_cloud_endpoints.py{% endif %}"
-  - "{% if 'prefect' not in modules %}src/{{ package_name }}/interface/workflow.py{% endif %}"
+  - "{% if not with_docker %}Dockerfile{% endif %}"
+  - "{% if not with_docker %}.dockerignore{% endif %}"
+  - "{% if not with_docker %}docker-compose.yml{% endif %}"
+  - "{% if not with_docker %}make/docker.mk{% endif %}"
+  - "{% if not with_docker %}tests/api/test_docker_endpoints.py{% endif %}"
+  - "{% if not with_docker %}.github/workflows/docker.yml{% endif %}"
+  - "{% if not with_gcp %}make/gcp.mk{% endif %}"
+  - "{% if not with_gcp %}make/bigquery.mk{% endif %}"
+  - "{% if not with_gcp %}make/vm.mk{% endif %}"
+  - "{% if not with_gcp %}make/cloudrun.mk{% endif %}"
+  - "{% if not with_gcp %}scripts/setup_vm.sh{% endif %}"
+  - "{% if not with_gcp %}tests/infrastructure/test_gcp_setup.py{% endif %}"
+  - "{% if not with_gcp %}tests/api/test_cloud_endpoints.py{% endif %}"
+  - "{% if not with_prefect %}src/{{ package_name }}/interface/workflow.py{% endif %}"
 
 _message_after_copy: |
   Your project {{ project_name }} is ready! 🚀
@@ -55,7 +56,9 @@ _message_after_copy: |
     - make run_all               # preprocess → train → evaluate → predict
     - make run_api               # the API starts on http://127.0.0.1:8000
 
-  Check README.md for further details
+  {% if with_docker and 'docker' not in modules %}  Note: GCP brought the Docker block along — Cloud Run deploys an image, and only the Docker block builds one.
+
+  {% endif %}  Check README.md for further details
 
 # ==============================================================================
 # ❓ QUESTIONS
@@ -149,3 +152,37 @@ modules:
     - mlflow
     - prefect
     - docker
+
+# ==============================================================================
+# 🔧 COMPUTED FLAGS
+# ==============================================================================
+# Never asked — `when: false` — and always derived from the answers above. The
+# templates then test a boolean, `{% if with_gcp %}`, instead of searching the
+# list, which is shorter and, more importantly, lets one block depend on
+# another: `modules` alone cannot express "GCP brings Docker".
+#
+# Order matters. A flag may only read the ones declared before it, so `with_gcp`
+# comes first and `with_docker` last.
+
+with_gcp:
+  type: bool
+  when: false
+  default: "{{ 'gcp' in modules }}"
+
+with_mlflow:
+  type: bool
+  when: false
+  default: "{{ 'mlflow' in modules }}"
+
+with_prefect:
+  type: bool
+  when: false
+  default: "{{ 'prefect' in modules }}"
+
+with_docker:
+  type: bool
+  when: false
+  # Cloud Run deploys an image, and only `make/docker.mk` can build one: without
+  # the Docker block, a GCP project ships a `cloudrun_deploy` target whose image
+  # nothing can ever produce. Ticking GCP therefore ticks this too.
+  default: "{{ 'docker' in modules or with_gcp }}"
