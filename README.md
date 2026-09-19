@@ -28,7 +28,7 @@ the generated `README.md`.
 | `project_name` | **required** — suggested in grey as a placeholder | README title, `pyproject.toml` description |
 | `package_name` | derived from the name above | `src/`, every import, `uvicorn`, custom commands |
 | `author_name` | **required** | `pyproject.toml` |
-| `author_email` | **required** | `pyproject.toml` |
+| `author_email` | **required**, refused unless it looks like an address | `pyproject.toml` |
 | `license` | `Proprietary` by default | `pyproject.toml` |
 | `modules` | all four by default | which optional building blocks the project gets |
 
@@ -38,6 +38,12 @@ placeholder alone would accept an empty answer without a word, which is why
 each of them also carries a `validator`. That also means `copier copy
 --defaults` needs those three answers passed with `-d` — which is what the CI
 does.
+
+The email address is held to a tighter rule than "not empty", because the build
+backend parses that field: hatchling reads `authors[].email` and refuses to
+build a project whose address is malformed. A space, or a domain without a dot,
+and the generated project cannot even `uv sync`. The validator accepts what
+hatchling accepts, minus the exotic forms nobody types.
 
 ### The building blocks
 
@@ -123,7 +129,8 @@ project from the template and runs lint, tests and the Docker smoke test
 
 One job generates a project from hostile answers — a quote, a backslash, a
 triple quote — and checks that each one comes back verbatim. An escaping bug is
-invisible everywhere else: the other jobs answer with friendly names.
+invisible everywhere else: the other jobs answer with friendly names. It also
+checks that a malformed email address is refused, not written out.
 
 Because of that, changes to the template are checked by pushing a branch and
 reading the CI, not by running `make` locally.

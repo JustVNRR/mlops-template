@@ -95,6 +95,12 @@ author_name:
     ❌ An author name is required.
     {% endif %}
 
+# The build backend parses this one (hatchling reads `authors[].email` through
+# email.headerregistry.Address) and refuses to build a project whose address is
+# malformed: a space, or a domain without a dot, and `uv sync` fails inside the
+# freshly generated project. So the rule below is the one hatchling applies,
+# minus the exotic forms nobody types — a dot-atom local part, and a dotted
+# domain ending in a real TLD. Everything it accepts, hatchling accepts too.
 author_email:
   type: str
   help: "What is the author's email address?"
@@ -102,6 +108,9 @@ author_email:
   validator: >-
     {% if not author_email %}
     ❌ An email address is required.
+    {% elif not (author_email | regex_search('^[A-Za-z0-9._%+\'-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}\Z')) %}
+    ❌ '{{ author_email }}' is not a valid email address.
+    → Expected something like 'you@example.com'. The build backend reads this field and refuses to build the project when the address is malformed.
     {% endif %}
 
 license:

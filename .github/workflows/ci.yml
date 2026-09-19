@@ -267,19 +267,21 @@ jobs:
   # pyproject.toml, silently. Generating from hostile answers and re-reading
   # what came out is the only check that sees it — `uv sync` on the other jobs
   # uses a friendly name and would never notice.
-  escaping:
-    name: Escaping (hostile answers)
+  #
+  # The other half is refusing an answer that cannot work at all, which is what
+  # the last step here checks.
+  hostile:
+    name: Hostile answers
     runs-on: ubuntu-latest
     env:
       # A double quote, a backslash and a triple quote, which break the TOML
       # string, the TOML escape, and the docstring respectively.
       HOSTILE_PROJECT_NAME: 'Mr. "Quoted" \ """ Project'
       HOSTILE_AUTHOR_NAME: 'O''Keefe "The Great" & <Sons>'
-      # A quoted local part, which is a legal address: hatchling parses this
-      # field (email.headerregistry.Address) and refuses to build a project
-      # whose email is malformed. This job exercises the escaping, not
-      # hatchling's validation.
-      HOSTILE_AUTHOR_EMAIL: '"o''keefe"@example.com'
+      # An address the validator accepts: the build backend parses this field
+      # too, so a quote here would never reach the file. The two names are what
+      # carry the escaping.
+      HOSTILE_AUTHOR_EMAIL: "o'keefe+ml@example.com"
     steps:
       - uses: actions/checkout@v4
 
@@ -341,3 +343,28 @@ jobs:
               raise SystemExit(1)
           print("✅ every answer was written verbatim")
           PY
+
+      # Escaping a value the project cannot use would only hide the problem:
+      # hatchling parses the email, so a malformed one has to be refused at the
+      # prompt — including by `--defaults`, which does run validators.
+      - name: Check a malformed email is refused
+        run: |
+          if output=$(uvx copier copy --defaults \
+               -d "project_name=Refused Project" \
+               -d "package_name=refused_project" \
+               -d "author_name=$AUTHOR_NAME" \
+               -d "author_email=jane doe@example.com" \
+               -d "license=$LICENSE" \
+               . "$RUNNER_TEMP/refused" 2>&1) ; then
+            echo "❌ a malformed email was accepted"
+            exit 1
+          fi
+          # Refusing the project is not enough — it has to be refused for THIS
+          # answer. An empty one would fail the same command for another reason
+          # and read as a pass.
+          if ! echo "$output" | grep -q "author_email" ; then
+            echo "❌ the project was refused, but not because of the email:"
+            echo "$output"
+            exit 1
+          fi
+          echo "✅ a malformed email was refused"
