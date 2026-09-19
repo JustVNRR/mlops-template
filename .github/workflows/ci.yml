@@ -1,0 +1,102 @@
+name: CI
+
+on:
+  # `push` SANS filtre de branche, volontairement : le workflow de travail de
+  # ce dépôt consiste à pousser une branche de lot pour faire tourner la CI
+  # AVANT de la merger dans main. Restreindre à `branches: [main]` rendrait
+  # cette vérification impossible — la CI ne se lancerait qu'après coup.
+  push:
+  pull_request:
+    branches: [main]
+
+# Annule les exécutions devenues obsolètes quand on pousse plusieurs fois
+# d'affilée sur la même branche : on ne paie pas pour des résultats périmés.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint (ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Lint
+        run: uv run ruff check .
+
+  tests:
+    name: Tests (pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      # `--frozen` échoue si uv.lock ne correspond plus à pyproject.toml :
+      # c'est exactement ce qu'on veut en CI, un lock périmé étant un bug.
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      # Le .env est gitignoré, donc absent d'un runner : on part du modèle,
+      # exactement comme un nouvel utilisateur. Toutes les variables ont un
+      # défaut, et les tests exigeant un service externe (GCP, conteneur,
+      # API déployée) sont exclus par le marqueur `integration`.
+      - name: Create .env from the template
+        run: cp .env.sample .env
+
+      - name: Run tests
+        run: uv run pytest
+
+  docker:
+    name: Docker build & smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Construire l'image est la SEULE façon de valider le Dockerfile
+      # automatiquement — c'est aussi l'étape 2 de la méthode des 3 paliers
+      # décrite dans le README.
+      - name: Build the production image
+        run: |
+          docker build \
+            --build-arg DOCKER_BASE_IMAGE=python:3.12-slim \
+            --tag mlops-template:ci \
+            .
+
+      # Démarrer le conteneur et interroger l'API : vérifie que l'image ne
+      # se contente pas de se construire, mais que l'API répond réellement.
+      # Aucun modèle n'est présent dans l'image, donc /predict répondra 503 —
+      # c'est justement le comportement qu'on veut garantir (l'API démarre
+      # même sans modèle, au lieu de planter au import).
+      - name: Start the container and check the API answers
+        run: |
+          docker run -d --name api-ci -e PORT=8000 -p 8000:8000 mlops-template:ci
+
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://localhost:8000/ > /dev/null 2>&1; then
+              echo "✅ L'API répond après ${attempt} tentative(s)."
+              curl -fsS http://localhost:8000/
+              exit 0
+            fi
+            sleep 2
+          done
+
+          echo "❌ L'API n'a jamais répondu. Journaux du conteneur :"
+          docker logs api-ci
+          exit 1
+
+      - name: Container logs
+        if: always()
+        run: docker logs api-ci 2>/dev/null || true
