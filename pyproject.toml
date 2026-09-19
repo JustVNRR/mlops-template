@@ -1,0 +1,114 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "package_folder"
+version = "0.0.1"
+description = "MLOps template project"
+readme = "README.md"
+requires-python = ">=3.11"
+
+authors = [{ name = "Your Name", email = "you@example.com" }]  # TODO: Update author
+license = { text = "Proprietary" }                              # TODO: Update license
+
+# Dépendances de PRODUCTION : tout ce qui est nécessaire pour servir l'API.
+# Les versions sont verrouillées par uv.lock (généré, versionné) — c'est lui
+# qui garantit la reproductibilité, pas ces bornes.
+dependencies = [
+  # --- API / serving ---
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+  "pydantic>=2.7",
+
+  # --- Manipulation de données ---
+  "pandas>=2.2",
+  "numpy>=1.26",
+  "scikit-learn>=1.5",
+  # Requis par l'interop pandas <-> BigQuery (load_table_from_dataframe
+  # et result.to_dataframe). Sans eux, les appels BQ échouent à l'exécution.
+  "pyarrow>=16.0",
+  "db-dtypes>=1.2",
+
+  # --- Google Cloud ---
+  "google-cloud-bigquery>=3.25",
+  "google-cloud-storage>=2.17",
+
+  # --- Cycle de vie du modèle ---
+  "mlflow>=2.14",
+  "prefect>=2.19",
+
+  # --- Utilitaires ---
+  "python-dotenv>=1.0",
+  "colorama>=0.4",
+  "pygeohash>=1.2",
+  "requests>=2.32",
+  "python-dateutil>=2.9",
+]
+
+# Dépendances de DÉVELOPPEMENT (PEP 735).
+# `uv sync` les installe par défaut ; `uv sync --no-dev` les exclut (prod/Docker).
+[dependency-groups]
+dev = [
+  "pytest>=8.2",
+  "pytest-asyncio>=0.23",
+  "httpx>=0.27",       # client HTTP des tests API
+  "ruff>=0.6",         # lint + format
+  "ipykernel>=6.29",   # exécution des notebooks
+]
+
+# ==============================================================================
+# 📦 PACKAGING
+# ==============================================================================
+# Déclaration explicite : le nom du dossier change via `make init_project`,
+# et hatchling doit savoir où trouver le paquet.
+[tool.hatch.build.targets.wheel]
+packages = ["package_folder"]
+
+# ==============================================================================
+# 🔍 RUFF — lint + format
+# ==============================================================================
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+exclude = [".venv", "build", "dist", "notebooks"]
+
+[tool.ruff.lint]
+select = [
+  "E4", "E7", "E9",  # erreurs pycodestyle
+  "F",               # pyflakes : imports inutilisés, noms non définis
+  "W",               # avertissements pycodestyle
+  "I",               # tri des imports (isort)
+  "UP",              # modernisation syntaxique (pyupgrade)
+  "B",               # pièges classiques (flake8-bugbear)
+]
+ignore = [
+  "E501",  # longueur de ligne : géré par le formatteur, pas par le linter
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Le template utilise `from package_folder.params import *` : stars imports
+# assumés pour l'instant (F403 = import étoile, F405 = nom possiblement issu
+# d'un import étoile). À retirer lors du passage aux imports explicites.
+"package_folder/**/*.py" = ["F403", "F405"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["package_folder"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+# ==============================================================================
+# 🧪 PYTEST
+# ==============================================================================
+# ⚠️ Cette config vit ICI et non dans tests/pytest.ini : pytest ne cherche un
+# pytest.ini que dans les DOSSIERS PARENTS des arguments, jamais dans les
+# sous-dossiers. Un tests/pytest.ini était donc purement et simplement ignoré
+# (ni -v, ni les warnings filtrés, ni les marqueurs).
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v -ra -s --tb=short -W ignore::DeprecationWarning -m 'not integration'"
+asyncio_mode = "auto"
+markers = [
+  "integration: nécessite des credentials GCP réels (bq, gcs). Exclu par défaut ; lancer avec `-m integration`.",
+]

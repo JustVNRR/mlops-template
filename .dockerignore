@@ -1,34 +1,44 @@
-# Environments and secrets
+# ==============================================================================
+# 🔐 ENVIRONNEMENTS ET SECRETS
+# ==============================================================================
 .env
+.env.*
 .envrc
-.env.yaml
-.env.sample
 .venv/
 env/
 venv/
+.direnv/
 
-# Local system and Python files
-.python-version
+# ==============================================================================
+# 🐍 RÉSIDUS PYTHON LOCAUX
+# ==============================================================================
 **/__pycache__/
 *.pyc
 .pytest_cache/
+.ruff_cache/
+.mypy_cache/
 *.egg-info/
+build/
+dist/
 
-# Development folders (not needed in production)
+# ⚠️ NE PAS exclure ici : pyproject.toml, uv.lock, .python-version et README.md.
+# uv en a besoin pour résoudre les dépendances et construire le paquet.
+
+# ==============================================================================
+# 🧪 DÉVELOPPEMENT (inutile en production)
+# ==============================================================================
 tests/
 notebooks/
-package_folder/interface/
 data/
+mlruns/
+.prefect/
 
-# Git
+# ==============================================================================
+# 🗂️ GIT, OUTILLAGE ET DOCUMENTATION
+# ==============================================================================
 .git/
 .gitignore
 .github/
-
-# Documentation and setup files
 docker-compose.yml
 Makefile
-README.md
-
-# Development dependencies
-requirements_dev.txt
+make/
