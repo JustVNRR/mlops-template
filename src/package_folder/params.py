@@ -3,12 +3,32 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+
 # ==============================================================================
 # 📂 PROJECT PATHS
 # ==============================================================================
-# 💡 This resolves the project root dynamically:
-# (__file__ = params.py -> .parent = the package -> .parent = the root)
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+# The project root is found by walking UP until pyproject.toml appears, rather
+# than by counting `.parent` levels.
+#
+# Counting levels is what breaks silently. This project uses the src layout, so
+# this file lives at src/<package>/params.py — one level deeper than it used to
+# be. A hardcoded `parent.parent` would have resolved to `src/` and quietly
+# started writing data/ and models/ there, without raising anything at all.
+def _find_project_root() -> Path:
+    for candidate in Path(__file__).resolve().parents:
+        if (candidate / "pyproject.toml").is_file():
+            return candidate
+
+    raise RuntimeError(
+        f"❌ Cannot locate the project root from {__file__}: no pyproject.toml "
+        f"found in any parent directory.\n"
+        f"   → This usually means the package was installed NON-editable (copied "
+        f"into site-packages).\n"
+        f"     Run `uv sync`: it installs the project in editable mode."
+    )
+
+
+PROJECT_ROOT = _find_project_root()
 
 LOCAL_DATA_PATH = PROJECT_ROOT / "data"
 LOCAL_REGISTRY_PATH = PROJECT_ROOT / "models"
