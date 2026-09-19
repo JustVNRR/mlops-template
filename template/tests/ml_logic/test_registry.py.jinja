@@ -1,0 +1,158 @@
+import json
+import os
+import pickle
+
+import numpy as np
+import pytest
+
+from {{ package_name }}.ml_logic import registry
+
+
+@pytest.fixture
+def local_registry(tmp_path, monkeypatch):
+    """
+    Point the local registry at a temporary directory.
+
+    Without this isolation, the tests would write into the project's real
+    models/ directory and pollute the user's registry.
+    """
+    monkeypatch.setattr(registry, "LOCAL_REGISTRY_PATH", tmp_path)
+    monkeypatch.setattr(registry, "MODELS_DIR", tmp_path / "models")
+    monkeypatch.setattr(registry, "PARAMS_DIR", tmp_path / "params")
+    monkeypatch.setattr(registry, "METRICS_DIR", tmp_path / "metrics")
+    monkeypatch.setattr(registry, "MODEL_TARGET", "local")
+    return tmp_path
+
+
+def _write_model(path, payload, mtime):
+    """Drop a fake model, forcing its modification time."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "wb") as file:
+        pickle.dump(payload, file)
+    os.utime(path, (mtime, mtime))
+
+
+# ==============================================================================
+# MODELS
+# ==============================================================================
+
+
+def test_save_model_then_load_model_roundtrip(local_registry):
+    registry.save_model({"weights": [1, 2, 3]})
+
+    assert registry.load_model() == {"weights": [1, 2, 3]}
+
+
+def test_load_model_picks_most_recent_by_mtime(local_registry):
+    """
+    Regression test: the previous code used `sorted(paths)[-1]`, i.e.
+    ALPHABETICAL sorting. It picked 'zzz.pkl' even when 'aaa.pkl' was the most
+    recent training run — a silent bug, invisible until filenames stop
+    following the <timestamp>.pkl convention.
+    """
+    _write_model(local_registry / "models" / "zzz.pkl", "old", mtime=1_000_000)
+    _write_model(local_registry / "models" / "aaa.pkl", "recent", mtime=2_000_000)
+
+    # Alphabetical sorting would return "old".
+    assert registry.load_model() == "recent"
+
+
+def test_load_model_ignores_non_pickle_files(local_registry):
+    """A stray file in models/ must not be loaded as a model."""
+    _write_model(local_registry / "models" / "real.pkl", "the good one", mtime=1_000_000)
+    (local_registry / "models" / "notes.txt").write_text("not a model")
+
+    assert registry.load_model() == "the good one"
+
+
+def test_load_model_returns_none_on_empty_registry(local_registry):
+    """An empty registry returns None instead of raising."""
+    assert registry.load_model() is None
+
+
+def test_load_model_creates_nothing_when_directory_missing(local_registry):
+    """No model and not even a directory: same behaviour."""
+    assert not (local_registry / "models").exists()
+    assert registry.load_model() is None
+
+
+# ==============================================================================
+# RESULTS (params / metrics)
+# ==============================================================================
+
+
+def test_save_results_writes_readable_json(local_registry):
+    registry.save_results(params={"learning_rate": 0.001}, metrics={"mae": 2.5})
+
+    params_file = next((local_registry / "params").glob("*.json"))
+    metrics_file = next((local_registry / "metrics").glob("*.json"))
+
+    assert json.loads(params_file.read_text()) == {"learning_rate": 0.001}
+    assert json.loads(metrics_file.read_text()) == {"mae": 2.5}
+
+
+def test_save_results_converts_numpy_types(local_registry):
+    """
+    scikit-learn returns np.float64 values, which json.dump rejects. The
+    conversion must be transparent, otherwise save_results blows up on
+    perfectly valid metrics.
+    """
+    registry.save_results(
+        metrics={
+            "mae": np.float64(2.5),
+            "rmse": np.float32(3.5),
+            "row_count": np.int64(100),
+            "confusion": np.array([[1, 2], [3, 4]]),
+            "nested": {"score": np.float64(0.9)},
+        }
+    )
+
+    metrics_file = next((local_registry / "metrics").glob("*.json"))
+    written = json.loads(metrics_file.read_text())
+
+    assert written == {
+        "mae": 2.5,
+        "rmse": 3.5,
+        "row_count": 100,
+        "confusion": [[1, 2], [3, 4]],
+        "nested": {"score": 0.9},
+    }
+    assert isinstance(written["mae"], float)
+    assert isinstance(written["row_count"], int)
+
+
+def test_save_results_accepts_partial_payloads(local_registry):
+    """params and metrics are independently optional."""
+    registry.save_results(params={"a": 1})
+    assert list((local_registry / "metrics").glob("*.json")) == []
+
+    registry.save_results(metrics={"b": 2})
+    assert list((local_registry / "params").glob("*.json")) != []
+
+
+# ==============================================================================
+# UNIMPLEMENTED TARGETS
+# ==============================================================================
+
+
+@pytest.mark.parametrize("target", ["gcs", "mlflow"])
+def test_save_model_raises_on_unimplemented_target(local_registry, monkeypatch, target):
+    """An unimplemented target must fail loudly, not silently."""
+    monkeypatch.setattr(registry, "MODEL_TARGET", target)
+
+    with pytest.raises(NotImplementedError, match=target):
+        registry.save_model(object())
+
+
+@pytest.mark.parametrize("target", ["gcs", "mlflow"])
+def test_save_model_writes_nothing_on_unimplemented_target(local_registry, monkeypatch, target):
+    """
+    The target is validated BEFORE writing: otherwise a model would be left on
+    disk while an exception is raised (a partial success).
+    """
+    monkeypatch.setattr(registry, "MODEL_TARGET", target)
+
+    with pytest.raises(NotImplementedError):
+        registry.save_model(object())
+
+    assert not (local_registry / "models").exists()

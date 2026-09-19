@@ -1,0 +1,110 @@
+name: CI
+
+on:
+  # `push` WITHOUT a branch filter, on purpose: the workflow is to push a work
+  # branch so the CI runs BEFORE it gets merged into main. Restricting this to
+  # `branches: [main]` would make that check impossible — the CI would only ever
+  # run after the fact.
+  push:
+  pull_request:
+    branches: [main]
+
+# Cancel obsolete runs when several pushes land in a row on the same branch:
+# there is no point paying for stale results.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint (ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      # `--frozen` fails if uv.lock no longer matches pyproject.toml: exactly
+      # what we want in CI, a stale lock being a bug in itself.
+      # ⚠️ It also fails when uv.lock is MISSING. Run `uv sync` once and commit
+      #    the lock it generates.
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Lint
+        run: uv run ruff check .
+
+      # Checks FORMATTING without changing it: the CI rejects badly formatted
+      # code rather than fixing it. That is what keeps the codebase consistent
+      # without anyone having to think about it.
+      - name: Check formatting
+        run: uv run ruff format --check .
+
+  tests:
+    name: Tests (pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      # The .env is git-ignored, hence absent from a runner: start from the
+      # template, exactly as a new user would. Every variable has a default, and
+      # the tests requiring an external service (GCP, container, deployed API)
+      # are excluded by the `integration` marker.
+      - name: Create .env from the template
+        run: cp .env.sample .env
+
+      - name: Run tests
+        run: uv run pytest
+
+  docker:
+    name: Docker build & smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Building the image is the ONLY way to validate the Dockerfile
+      # automatically — it is also step 2 of the 3-tier method described in the
+      # README.
+      - name: Build the production image
+        run: |
+          docker build \
+            --build-arg DOCKER_BASE_IMAGE=python:3.12-slim \
+            --tag api:ci \
+            .
+
+      # Start the container and query the API: this checks that the image does
+      # not merely build, but that the API actually answers. No model ships
+      # inside the image, so /predict will answer 503 — which is precisely the
+      # behaviour we want to guarantee: the API starts even with no model,
+      # instead of crashing on import.
+      - name: Start the container and check the API answers
+        run: |
+          docker run -d --name api-ci -e PORT=8000 -p 8000:8000 api:ci
+
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://localhost:8000/ > /dev/null 2>&1; then
+              echo "✅ The API answered after ${attempt} attempt(s)."
+              curl -fsS http://localhost:8000/
+              exit 0
+            fi
+            sleep 2
+          done
+
+          echo "❌ The API never answered. Container logs:"
+          docker logs api-ci
+          exit 1
+
+      - name: Container logs
+        if: always()
+        run: docker logs api-ci 2>/dev/null || true
