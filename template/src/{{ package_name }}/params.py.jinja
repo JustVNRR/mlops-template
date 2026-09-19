@@ -106,10 +106,12 @@ BQ_REGION = _optional("BQ_REGION")
 BUCKET_NAME = _optional("BUCKET_NAME")
 INSTANCE = _optional("INSTANCE")
 
-{% endif %}# --- MLflow & Prefect ---
+{% endif %}{% if 'mlflow' in modules %}# --- MLflow ---
 MLFLOW_TRACKING_URI = _optional("MLFLOW_TRACKING_URI")
 MLFLOW_EXPERIMENT = _optional("MLFLOW_EXPERIMENT")
 MLFLOW_MODEL_NAME = _optional("MLFLOW_MODEL_NAME")
+
+{% endif %}# --- Prefect ---
 PREFECT_FLOW_NAME = _optional("PREFECT_FLOW_NAME")
 PREFECT_LOG_LEVEL = _optional("PREFECT_LOG_LEVEL")
 EVALUATION_START_DATE = _optional("EVALUATION_START_DATE")

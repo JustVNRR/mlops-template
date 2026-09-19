@@ -9,8 +9,8 @@
 !.env.sample*
 *.pem
 *.key
-# *.json is ignored on purpose: GCP service account keys have unpredictable
-# names (my-project-1234567-abcdef.json) and a leak is expensive.
+# *.json is ignored on purpose: service-account keys and other credentials have
+# unpredictable names (my-project-1234567-abcdef.json) and a leak is expensive.
 # To version a legitimate JSON file, add a targeted exception:
 #   !config/settings.json
 *.json
@@ -77,13 +77,13 @@ training_outputs/
 *.h5
 *.pkl
 *.model
-# Local artefacts created by MLflow or Prefect.
+{% if 'mlflow' in modules %}# Local artefacts created by MLflow.
 # MLflow 2 used a plain directory (mlruns/); MLflow 3 creates a SQLite database
 # by default (mlflow.db), along with its WAL/SHM companion files.
 mlruns/
 mlflow.db
 mlflow.db-*
-.prefect/
+{% endif %}.prefect/
 
 # ==============================================================================
 # 🪵 LOGS (runtime output, never versioned)

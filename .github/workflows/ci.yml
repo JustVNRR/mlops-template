@@ -197,18 +197,19 @@ jobs:
             if [ -e "$f" ]; then echo "❌ $f should have been excluded"; exit 1; fi
           done
 
-          # A surviving cloud import only shows up at runtime, on someone else's
+          # A surviving import only shows up at runtime, on someone else's
           # machine: check for it here.
-          if grep -rn "google\.cloud" src/ tests/ ; then
-            echo "❌ a source file still imports a cloud package"
+          if grep -rn "google\.cloud\|import mlflow" src/ tests/ ; then
+            echo "❌ a source file still imports an optional package"
             exit 1
           fi
 
-          if grep -rn -i "docker\|gcp\|bigquery\|gcloud" README.md .github/ .env.sample ; then
-            echo "❌ the README, a workflow or .env.sample still mentions an optional block"
+          if grep -rn -i "docker\|gcp\|bigquery\|gcloud\|mlflow" \
+               README.md .github/ .env.sample .gitignore ; then
+            echo "❌ a rendered file still mentions an optional block"
             exit 1
           fi
-          echo "✅ nothing from the docker or gcp building block survived"
+          echo "✅ nothing from the docker, gcp or mlflow building block survived"
 
       - name: Install dependencies
         working-directory: ${{ runner.temp }}/minimal

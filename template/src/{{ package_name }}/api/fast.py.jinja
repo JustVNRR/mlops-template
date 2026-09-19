@@ -132,9 +132,9 @@ def update_model(stage: str = DEFAULT_ALIAS) -> dict:
     """
     Hot-swap the model held in memory, with no service restart.
 
-    `stage` is the MLflow alias of the model to load; it is ignored when
-    MODEL_TARGET=local, where the most recent model always wins. Answers 404
-    when the model cannot be found and 500 when loading it fails.
+    `stage` names the model to load in a remote registry; it is ignored by the
+    local one, where the most recent model always wins. Answers 404 when the
+    model cannot be found and 500 when loading it fails.
     """
     try:
         new_model = load_model(stage=stage)

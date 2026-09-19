@@ -1,21 +1,21 @@
-import functools
-import json
+{% if 'mlflow' in modules %}import functools
+{% endif %}import json
 import pickle
 import time
 from pathlib import Path
 from typing import Any
 
-import mlflow
-import numpy as np
+{% if 'mlflow' in modules %}import mlflow
+{% endif %}import numpy as np
 from loguru import logger
-from mlflow.tracking import MlflowClient
-
+{% if 'mlflow' in modules %}from mlflow.tracking import MlflowClient
+{% endif %}
 from {{ package_name }}.params import (
     LOCAL_REGISTRY_PATH,
-    MLFLOW_EXPERIMENT,
+{% if 'mlflow' in modules %}    MLFLOW_EXPERIMENT,
     MLFLOW_MODEL_NAME,
     MLFLOW_TRACKING_URI,
-    MODEL_TARGET,
+{% endif %}    MODEL_TARGET,
 )
 
 # ==============================================================================
@@ -32,7 +32,8 @@ MODELS_DIR = LOCAL_REGISTRY_PATH / "models"
 PARAMS_DIR = LOCAL_REGISTRY_PATH / "params"
 METRICS_DIR = LOCAL_REGISTRY_PATH / "metrics"
 
-# MLflow alias pointing at the model served in production (see below).
+# Alias of the model served in production. MLflow uses it directly; without
+# MLflow it is only the default value of `load_model(stage=...)`.
 DEFAULT_ALIAS = "champion"
 
 
@@ -93,8 +94,8 @@ def _latest_file(directory: Path, pattern: str = "*") -> Path | None:
 def save_results(params: dict | None = None, metrics: dict | None = None) -> None:
     """
     Persist params & metrics locally on the hard drive.
-    If MODEL_TARGET='mlflow', also persist them on MLflow.
-    """
+{% if 'mlflow' in modules %}    If MODEL_TARGET='mlflow', also persist them on MLflow.
+{% endif %}    """
     timestamp = time.strftime("%Y%m%d-%H%M%S")
 
     # 1. Local JSON save. JSON is readable, diffs in git, and loads back from
@@ -106,8 +107,7 @@ def save_results(params: dict | None = None, metrics: dict | None = None) -> Non
         _write_json(METRICS_DIR / f"{timestamp}.json", metrics)
 
     logger.info(f"Results saved locally ({LOCAL_REGISTRY_PATH})")
-
-    # 2. MLflow save.
+{% if 'mlflow' in modules %}    # 2. MLflow save.
     #    Reminder: log_params/log_metrics only make sense INSIDE an active run,
     #    which the @mlflow_run decorator on train()/evaluate() takes care of.
     if MODEL_TARGET == "mlflow":
@@ -116,14 +116,14 @@ def save_results(params: dict | None = None, metrics: dict | None = None) -> Non
         if metrics is not None:
             mlflow.log_metrics(metrics)
         logger.info("Results saved on MLflow")
-
+{% endif %}
 
 def save_model(model: Any) -> None:
     """
     Persist trained model locally on the hard drive.
 {% if 'gcp' in modules %}    - if MODEL_TARGET='gcs', also persist it in the GCS bucket
-{% endif %}    - if MODEL_TARGET='mlflow', also persist it on MLflow
-    """
+{% endif %}{% if 'mlflow' in modules %}    - if MODEL_TARGET='mlflow', also persist it on MLflow
+{% endif %}    """
     # The target is validated BEFORE anything is written: otherwise a model
     # would be left on disk while an exception is raised, producing a partial
     # success that is very hard to diagnose.
@@ -133,13 +133,19 @@ def save_model(model: Any) -> None:
             "   → Implement it here (google.cloud.storage), or set MODEL_TARGET=local in your .env."
         )
 
-{% endif %}    if MODEL_TARGET == "mlflow":
+{% endif %}{% if 'mlflow' in modules %}    if MODEL_TARGET == "mlflow":
         raise NotImplementedError(
             "❌ MODEL_TARGET='mlflow': logging the model is not implemented.\n"
-            "   → Uncomment the mlflow.<framework>.log_model block below, or set MODEL_TARGET=local in your .env."
+            "   → Replace this error with the block below, or set MODEL_TARGET=local in your .env."
         )
 
-    # --- MODEL_TARGET == "local" ---
+        # mlflow.sklearn.log_model(
+        #     sk_model=model,
+        #     artifact_path="model",
+        #     registered_model_name=MLFLOW_MODEL_NAME,
+        # )
+
+{% endif %}    # --- MODEL_TARGET == "local" ---
     timestamp = time.strftime("%Y%m%d-%H%M%S")
     model_path = MODELS_DIR / f"{timestamp}.pkl"
 
@@ -151,55 +157,8 @@ def save_model(model: Any) -> None:
 
     logger.info(f"Model saved locally: {model_path}")
 
-    # TODO (MODEL_TARGET='mlflow' — uncomment in the dedicated branch):
-    # mlflow.sklearn.log_model(
-    #     sk_model=model,
-    #     artifact_path="model",
-    #     registered_model_name=MLFLOW_MODEL_NAME,
-    # )
 
-
-# ==============================================================================
-# 📥 LOADING
-# ==============================================================================
-def load_model(stage: str = DEFAULT_ALIAS) -> Any | None:
-    """
-    Return a saved model:
-    - locally the most recent one (by modification time)
-{% if 'gcp' in modules %}    - or from GCS (most recent one) if MODEL_TARGET == 'gcs'
-{% endif %}    - or from MLflow, by alias, if MODEL_TARGET == 'mlflow'
-
-    `stage` is a legacy parameter name: it designates the MLflow ALIAS (see
-    mlflow_set_alias).
-    """
-    if MODEL_TARGET == "local":
-        logger.info("Load latest model from local registry...")
-
-        model_path = _latest_file(MODELS_DIR, pattern="*.pkl")
-        if model_path is None:
-            logger.warning(f"No model found in {MODELS_DIR} - train one first: `make run_train`")
-            return None
-
-        logger.info(f"Loading model: {model_path.name}")
-        with open(model_path, "rb") as file:
-            return pickle.load(file)
-
-{% if 'gcp' in modules %}    if MODEL_TARGET == "gcs":
-        raise NotImplementedError(
-            "❌ MODEL_TARGET='gcs': downloading from Cloud Storage is not implemented.\n"
-            "   → Implement it here (google.cloud.storage), or set MODEL_TARGET=local in your .env."
-        )
-
-{% endif %}    if MODEL_TARGET == "mlflow":
-        raise NotImplementedError(
-            "❌ MODEL_TARGET='mlflow': loading from MLflow is not implemented.\n"
-            "   → Use mlflow.<framework>.load_model with the alias, or set MODEL_TARGET=local in your .env."
-        )
-
-    return None
-
-
-# ==============================================================================
+{% if 'mlflow' in modules %}# ==============================================================================
 # 🏷️ MLFLOW ALIASES
 # ==============================================================================
 def mlflow_latest_version() -> str | None:
@@ -290,3 +249,43 @@ def mlflow_run(func):
         return results
 
     return wrapper
+
+
+{% endif %}# ==============================================================================
+# 📥 LOADING
+# ==============================================================================
+def load_model(stage: str = DEFAULT_ALIAS) -> Any | None:
+    """
+    Return a saved model:
+    - locally the most recent one (by modification time)
+{% if 'gcp' in modules %}    - or from GCS (most recent one) if MODEL_TARGET == 'gcs'
+{% endif %}{% if 'mlflow' in modules %}    - or from MLflow, by alias, if MODEL_TARGET == 'mlflow'
+
+    `stage` is a legacy parameter name: it designates the MLflow ALIAS (see
+    mlflow_set_alias).
+{% endif %}    """
+    if MODEL_TARGET == "local":
+        logger.info("Load latest model from local registry...")
+
+        model_path = _latest_file(MODELS_DIR, pattern="*.pkl")
+        if model_path is None:
+            logger.warning(f"No model found in {MODELS_DIR} - train one first: `make run_train`")
+            return None
+
+        logger.info(f"Loading model: {model_path.name}")
+        with open(model_path, "rb") as file:
+            return pickle.load(file)
+
+{% if 'gcp' in modules %}    if MODEL_TARGET == "gcs":
+        raise NotImplementedError(
+            "❌ MODEL_TARGET='gcs': downloading from Cloud Storage is not implemented.\n"
+            "   → Implement it here (google.cloud.storage), or set MODEL_TARGET=local in your .env."
+        )
+
+{% endif %}{% if 'mlflow' in modules %}    if MODEL_TARGET == "mlflow":
+        raise NotImplementedError(
+            "❌ MODEL_TARGET='mlflow': loading from MLflow is not implemented.\n"
+            "   → Use mlflow.<framework>.load_model with the alias, or set MODEL_TARGET=local in your .env."
+        )
+
+{% endif %}    return None

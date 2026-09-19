@@ -17,13 +17,13 @@ from {{ package_name }}.params import LOG_LEVEL
 
 # Loggers that would otherwise keep their own handlers and formatting. uvicorn
 # installs several, and turns propagation off on them.
-#
+{% if 'mlflow' in modules %}#
 # MLflow is deliberately absent. It installs its own StreamHandler when imported,
 # and that import happens after this module has run, so whatever is set here gets
 # replaced. Its autolog lines therefore keep MLflow's format. Overriding that
 # would mean re-running the capture after every library import — not worth it for
 # library diagnostics, and fragile.
-INTERCEPTED_LOGGERS = ("uvicorn", "uvicorn.error", "uvicorn.access", "prefect")
+{% endif %}INTERCEPTED_LOGGERS = ("uvicorn", "uvicorn.error", "uvicorn.access", "prefect")
 
 _configured = False
 
@@ -77,9 +77,8 @@ def setup_logging() -> None:
             "<level>{message}</level>"
         ),
         # diagnose=True, loguru's default for tracebacks, prints the VALUE of
-        # every local variable. This project holds .env contents, GCP
-        # credentials and MLflow tokens in memory, so a traceback would copy
-        # them into the logs.
+        # every local variable. This project holds .env contents in memory —
+        # credentials, tokens — so a traceback would copy them into the logs.
         diagnose=False,
         backtrace=False,
     )
