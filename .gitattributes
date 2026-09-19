@@ -1,0 +1,44 @@
+# ==============================================================================
+# 🔤 NORMALISATION DES FINS DE LIGNE
+# ==============================================================================
+# Ce projet est *nix-first : il s'exécute sous WSL, dans Docker, sur une VM GCP
+# et dans la CI Ubuntu. Tout le texte est donc stocké ET extrait en LF, même
+# sous Windows.
+#
+# Pourquoi ce fichier est indispensable :
+# core.autocrlf est une configuration GLOBALE à la machine (donc invisible dans
+# le dépôt). Une machine Windows avec autocrlf=true extrait le worktree en CRLF
+# et normalize en silence à la lecture : git y affiche « propre » alors que les
+# fichiers contiennent des CR. Vue depuis WSL, la même arborescence apparaît
+# entièrement modifiée. Résultat : un commit depuis WSL réécrit tout le dépôt.
+# Une règle .gitattributes est versionnée, elle — donc identique partout.
+* text=auto eol=lf
+
+# Scripts et makefiles : LF OBLIGATOIRE. Un CR casse le shebang
+# (`/bin/bash^M: bad interpreter`), fait échouer les heredocs et contamine les
+# variables (ex. une valeur lue depuis .env se retrouve suffixée d'un \r).
+*.sh        text eol=lf
+*.bash      text eol=lf
+Makefile    text eol=lf
+*.mk        text eol=lf
+
+# ==============================================================================
+# 🖼️ FICHIERS BINAIRES — aucune conversion, aucun diff textuel
+# ==============================================================================
+*.pkl       binary
+*.pickle    binary
+*.joblib    binary
+*.h5        binary
+*.hdf5      binary
+*.npz       binary
+*.npy       binary
+*.parquet   binary
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.ico       binary
+*.pdf       binary
+*.woff      binary
+*.woff2     binary
+*.ttf       binary
