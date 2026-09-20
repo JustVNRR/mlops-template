@@ -131,9 +131,19 @@ jobs:
         working-directory: ${{ runner.temp }}/generated
         run: uv run pytest
 
+      # The project is generated with the demonstration dataset and a `.env`
+      # copied from the sample, so it has no tracking URI. It must therefore not
+      # start MLflow: autologging output for a project that tracks nothing is
+      # noise, and it is the first thing a new user sees.
       - name: Run the pipeline end to end
         working-directory: ${{ runner.temp }}/generated
-        run: make run_pipeline
+        run: |
+          output=$(make run_pipeline 2>&1)
+          echo "$output"
+          if echo "$output" | grep -qi mlflow ; then
+            echo "❌ MLflow ran in a project that has no tracking URI"
+            exit 1
+          fi
 
   docker:
     name: Docker build & smoke test (generated project)

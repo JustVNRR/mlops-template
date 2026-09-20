@@ -72,20 +72,40 @@ def setup_logging() -> None:
     # both would print every message twice.
     logger.remove()
 
+    # Two sinks on the same stream, split at WARNING so the origin
+    # (`module:line`) appears only where it earns its width: below that it names
+    # the module that wrote the message, above it answers "who said this",
+    # which is the whole question when the message comes from a library.
+    #
+    # Both carry the same LOG_LEVEL, so setting it to ERROR silences warnings
+    # too: the split is the format, not the threshold.
+    #
+    # diagnose=True, loguru's default for tracebacks, prints the VALUE of every
+    # local variable. This project holds .env contents in memory — credentials,
+    # tokens — so a traceback would copy them into the logs.
+    shared = {
+        "level": LOG_LEVEL,
+        "diagnose": False,
+        "backtrace": False,
+    }
+
     logger.add(
         sys.stderr,
-        level=LOG_LEVEL,
+        filter=lambda record: record["level"].no < logging.WARNING,
+        format=("<green>{time:HH:mm:ss}</green>  <level>{level: <8}</level> <level>{message}</level>"),
+        **shared,
+    )
+
+    logger.add(
+        sys.stderr,
+        filter=lambda record: record["level"].no >= logging.WARNING,
         format=(
-            "<green>{time:HH:mm:ss}</green> | "
-            "<level>{level: <8}</level> | "
-            "<cyan>{name}</cyan>:<cyan>{line}</cyan> - "
+            "<green>{time:HH:mm:ss}</green>  "
+            "<level>{level: <8}</level> "
+            "<cyan>{name}</cyan>:<cyan>{line}</cyan>  "
             "<level>{message}</level>"
         ),
-        # diagnose=True, loguru's default for tracebacks, prints the VALUE of
-        # every local variable. This project holds .env contents in memory —
-        # credentials, tokens — so a traceback would copy them into the logs.
-        diagnose=False,
-        backtrace=False,
+        **shared,
     )
 
     # Console only. To also keep a file, uncomment — `logs/` and `*.log` are
