@@ -17,7 +17,7 @@ Generated from the
 | **uv** | Python environments and dependencies | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
 | **Docker** | Step 2 of the API tests, and the image build | [Docker Desktop](https://www.docker.com/products/docker-desktop/) |
 | **git** | Obviously | — |
-{% if with_gcp %}| **gcloud CLI** | Everything under `make/gcp.mk`, `vm.mk`, `bigquery.mk`, `cloudrun.mk` | [Install](https://cloud.google.com/sdk/docs/install) |
+{% if with_gcp %}| **gcloud CLI** | Everything under `make/gcp.mk`, `vm.mk`, `bigquery.mk`, `cloudrun.mk`, `artifact_registry.mk` | [Install](https://cloud.google.com/sdk/docs/install) |
 {% endif %}
 
 > **On Windows: use WSL2.** This project is *nix-first (make, bash, sed, Ubuntu
@@ -74,7 +74,7 @@ predictions. Replace the pieces one at a time with your own afterwards (see
 │           └── encoders.py    #     a place for your custom encoders
 ├── make/                      # Makefile targets, grouped by domain
 ├── tests/
-│   ├── api/                   #   the validation tiers (local, cloud, docker)
+│   ├── api/                   #   the validation tiers (local{% if with_gcp %}, cloud{% endif %}, docker)
 │   ├── ml_logic/              #   unit tests of the pipeline
 │   └── infrastructure/        #   environment checks
 ├── notebooks/                 # exploration + API usage
