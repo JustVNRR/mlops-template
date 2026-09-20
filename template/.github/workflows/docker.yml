@@ -1,8 +1,9 @@
 name: Docker
 
-# Kept apart from ci.yml so that a project without the `docker` building block
-# can drop the whole file, without ci.yml having to be rendered as a template —
-# GitHub expressions and Jinja share the same `{{ }}` delimiters.
+# The container's own workflow: a build that fails is one check to read, and the
+# lint and test jobs stay untouched. This file ships to every project — the
+# container is not optional — and carries no Jinja, because GitHub expressions
+# and Jinja share the same `{{ }}` delimiters.
 on:
   push:
   pull_request:
@@ -39,10 +40,9 @@ jobs:
             .
 
       # Start the container and query the API: this checks that the image does
-      # not merely build, but that the API actually answers. No model ships
-      # inside the image, so /predict will answer 503 — which is precisely the
-      # behaviour we want to guarantee: the API starts even with no model,
-      # instead of crashing on import.
+      # not merely build, but that the API actually answers. `GET /` only — the
+      # 503 that `/predict` ought to return when no model ships in the image,
+      # rather than crashing on import, is asserted nowhere yet.
       - name: Start the container and check the API answers
         run: |
           docker run -d --name api-ci -e PORT=8000 -p 8000:8000 api:ci

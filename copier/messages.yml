@@ -40,9 +40,9 @@ _message_after_copy: |
 _message_before_update: |
   Updating {{ _folder_name }} from the template.
 
-  Three files are yours and will be left alone: `.gitignore`, `README.md` and
-  the notebooks. Everything else is patched — a change that lands on a line you
-  edited is reported rather than applied.
+  Four files are yours and will be left alone: `.gitignore`, `README.md`, the
+  notebooks and `LICENSE`. Everything else is patched — a change that lands on a
+  line you edited is reported rather than applied.
 
 _message_after_update: |
   Updated. 🚀

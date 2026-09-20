@@ -20,7 +20,7 @@
 # What the user reads before and after a copy, and before and after an update.
 !include copier/messages.yml
 ---
-# The six questions, in the order they are asked.
+# The nine questions, in the order they are asked.
 !include copier/questions.yml
 ---
 # One boolean per building block, derived from `modules`.
