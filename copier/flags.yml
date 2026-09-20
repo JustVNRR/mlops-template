@@ -27,7 +27,7 @@ with_prefect:
 with_docker:
   type: bool
   when: false
-  # Cloud Run deploys an image, and only `make/docker.mk` can build one: without
-  # the Docker block, a GCP project ships a `cloudrun_deploy` target whose image
-  # nothing can ever produce. Ticking GCP therefore ticks this too.
+  # The `modules` validator refuses GCP without Docker, so the second half of
+  # this expression cannot fire today. It stays as the rule written down: GCP
+  # needs an image, and this is what says so if that validator is ever relaxed.
   default: "{{ 'docker' in modules or with_gcp }}"
