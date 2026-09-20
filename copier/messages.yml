@@ -21,7 +21,7 @@ _message_after_copy: |
     5. git commit -m "Initial commit"
 
   ⚠️ Important: Make sure your new `uv.lock` is included in this first commit.
-  The Dockerfile and CI pipelines rely on it (they install strictly in `--frozen` mode) and will crash if the file is missing from your repository.
+  The Dockerfile and CI pipelines rely on it and will crash if the file is missing from your repository.
 
   To test your setup:
     - make run_pipeline          # preprocess → train → evaluate → predict

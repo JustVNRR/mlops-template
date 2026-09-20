@@ -107,8 +107,6 @@ modules:
       mlflow  → Experiment tracking and model registry
       prefect → Orchestration of the pipeline
 
-    The container is not on this list: the API ships with its Dockerfile,
-    docker-compose.yml and its container tests whatever you answer here.
   choices:
     - gcp
     - mlflow
