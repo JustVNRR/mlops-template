@@ -137,7 +137,13 @@ def test_save_results_accepts_partial_payloads(local_registry):
 
 # Targets that this project cannot serve: the building block providing them was
 # left out at generation time.
-UNIMPLEMENTED_TARGETS = [{% if with_gcp %}"gcs", {% endif %}{% if with_mlflow %}"mlflow"{% endif %}]
+#
+# The comma sits BETWEEN the entries rather than after each one. Written the
+# other way, a project built with `gcp` and without `mlflow` renders
+# `["gcs", ]`, which `ruff format --check` rejects — a check the generated
+# project's own CI runs on every push, and which nothing here could see while
+# only two of the eight combinations were linted.
+UNIMPLEMENTED_TARGETS = [{% if with_gcp %}"gcs"{% endif %}{% if with_gcp and with_mlflow %}, {% endif %}{% if with_mlflow %}"mlflow"{% endif %}]
 
 
 def test_save_model_raises_on_unimplemented_target(local_registry, monkeypatch):
