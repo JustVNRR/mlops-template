@@ -47,6 +47,7 @@ FILES_PER_MODULE = {
         "make/bigquery.mk",
         "make/vm.mk",
         "make/cloudrun.mk",
+        "make/artifact_registry.mk",
         "scripts/setup_vm.sh",
         "tests/infrastructure/test_gcp_setup.py",
         "tests/api/test_cloud_endpoints.py",
@@ -54,9 +55,16 @@ FILES_PER_MODULE = {
     "prefect": [f"src/{PACKAGE}/interface/workflow.py"],
 }
 
-# `gcp` reaches into make/docker.mk: publishing an image to Artifact Registry
-# needs both, and those targets live with the container, not with the cloud.
-GCP_TARGETS_IN_DOCKER_MAKE = ["artifact_registry", "docker_push_prod"]
+# Every target that needs a GCP project. They live in a file of their own, which
+# only a project built with `gcp` receives. `make/docker.mk` ships to all of
+# them, so it must not know about any of these.
+GCP_ONLY_TARGETS = [
+    "artifact_registry_create",
+    "artifact_registry_role",
+    "artifact_registry_auth",
+    "docker_build_prod",
+    "docker_push_prod",
+]
 
 # What a file copied without being rendered keeps: a Jinja substitution
 # (`{{ package_name }}`) or a tag (`{% if with_gcp %}`). The two shapes that
@@ -137,19 +145,32 @@ def test_mlflow_rewrites_content_instead_of_adding_files(generate):
     assert "import mlflow" not in (without / registry).read_text()
 
 
-def test_the_gcp_targets_stay_out_when_gcp_was_not_ticked(generate):
-    docker_make = (generate(modules=[]) / "make/docker.mk").read_text()
+def test_the_container_file_knows_nothing_about_the_cloud(generate):
+    # The container is in every project, so a cloud target left in its file
+    # would land in a project without a cloud account. That is the rule the
+    # split into `artifact_registry.mk` exists to hold.
+    for modules in ([], ["gcp"]):
+        docker_make = (generate(modules=modules) / "make/docker.mk").read_text()
 
-    assert "docker_build_local" in docker_make
-    for target in GCP_TARGETS_IN_DOCKER_MAKE:
-        assert target not in docker_make, f"{target} needs GCP and should not be there"
+        assert "docker_build_local" in docker_make
+        for target in GCP_ONLY_TARGETS:
+            assert target not in docker_make, f"{target} does not belong to the container file"
 
 
-def test_the_gcp_targets_are_back_when_gcp_was_ticked(generate):
-    docker_make = (generate(modules=["gcp"]) / "make/docker.mk").read_text()
+def test_the_gcp_targets_live_in_their_own_file(generate):
+    registry_make = (generate(modules=["gcp"]) / "make/artifact_registry.mk").read_text()
 
-    for target in GCP_TARGETS_IN_DOCKER_MAKE:
-        assert target in docker_make
+    for target in GCP_ONLY_TARGETS:
+        assert target in registry_make, f"{target} is missing from artifact_registry.mk"
+
+
+def test_no_gcp_target_survives_without_gcp(generate):
+    # The `reduced` CI job greps `make help` for the same thing; this version
+    # reads the files, so it can name what it found.
+    defined = defined_targets(generate(modules=[]))
+    survivors = sorted(target for target in GCP_ONLY_TARGETS if target in defined)
+
+    assert not survivors, f"these need a GCP project and survived: {survivors}"
 
 
 def test_the_readme_only_names_targets_the_project_has(generate):

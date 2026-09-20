@@ -98,7 +98,7 @@ sections simply are not there — not commented out, absent.
 
 | Block | What it brings | Unticked, the project loses |
 |---|---|---|
-| `gcp` | BigQuery, Cloud Storage, a training VM, Cloud Run | `make/{gcp,bigquery,vm,cloudrun}.mk`, the cloud dependencies, the GCP tests, `DATA_SOURCE=bigquery` |
+| `gcp` | BigQuery, Cloud Storage, a training VM, Cloud Run, Artifact Registry | `make/{gcp,bigquery,vm,cloudrun,artifact_registry}.mk`, the cloud dependencies, the GCP tests, `DATA_SOURCE=bigquery` |
 | `mlflow` | experiment tracking, model registry, aliases | the MLflow half of `registry.py`, the `@mlflow_run` decorators, the promotion step of the workflow |
 | `prefect` | orchestration of the full retraining cycle | `interface/workflow.py` in its entirety, `make run_workflow` |
 
@@ -112,9 +112,10 @@ conditions it meets in production, and how the image that a deployment needs
 gets built. Unticking everything still leaves `make docker_build_local` and
 `make test_api_docker`.
 
-`gcp` reaches into `make/docker.mk` exactly once — publishing an image to
-Artifact Registry needs both — so those targets live with the container, under
-a `gcp` condition.
+`gcp` does not reach into `make/docker.mk`. Publishing an image to Artifact
+Registry needs both, but that file ships to every project — so the targets that
+talk to the cloud live in `make/artifact_registry.mk`, which only a project
+built with `gcp` receives.
 
 ### What the project owns
 

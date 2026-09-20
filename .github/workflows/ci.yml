@@ -242,6 +242,7 @@ jobs:
         working-directory: ${{ runner.temp }}/minimal
         run: |
           for f in make/gcp.mk make/bigquery.mk make/vm.mk make/cloudrun.mk \
+                   make/artifact_registry.mk \
                    scripts/setup_vm.sh \
                    tests/infrastructure/test_gcp_setup.py \
                    tests/api/test_cloud_endpoints.py \
@@ -272,9 +273,9 @@ jobs:
           done
           echo "✅ no optional building block survived, and the container did"
 
-      # The Artifact Registry targets live in make/docker.mk — they build an
-      # image — but they also need GCP. This project has the first and not the
-      # second, so it is where a wrong condition shows up.
+      # The Artifact Registry targets build and push an image, but they need a
+      # GCP project, so they live in a file of their own. This project has the
+      # container and not the cloud: it is where a wrong condition shows up.
       - name: Check the GCP targets stayed out
         working-directory: ${{ runner.temp }}/minimal
         run: |

@@ -226,10 +226,13 @@ make iam_setup_service_account
 ### API in production
 
 ```bash
-make docker_build_prod      # linux/amd64 image
-make docker_push_prod       # to Artifact Registry
-make cloudrun_deploy        # to Cloud Run
-make cloudrun_url           # fetch the URL for SERVICE_URL
+make artifact_registry_create   # one-off: the repository that receives the image
+make artifact_registry_role     # one-off: your right to push to it
+make artifact_registry_auth     # one-off: your Docker's credentials
+make docker_build_prod          # linux/amd64 image
+make docker_push_prod           # to Artifact Registry
+make cloudrun_deploy            # to Cloud Run
+make cloudrun_url               # fetch the URL for SERVICE_URL
 ```
 {% endif %}
 ---
