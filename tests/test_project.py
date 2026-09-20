@@ -58,6 +58,20 @@ FILES_PER_MODULE = {
 # needs both, and those targets live with the container, not with the cloud.
 GCP_TARGETS_IN_DOCKER_MAKE = ["artifact_registry", "docker_push_prod"]
 
+# One LICENSE file per license, each holding the text it is named after. The
+# marker is a line that appears in that text and in no other — checked, since
+# the six files are one careless copy-paste apart. `Proprietary` has no marker:
+# a project that keeps its source closed has no license text to write.
+LICENSE_MARKERS = {
+    "Proprietary": None,
+    "Apache-2.0": "Apache License",
+    "MIT": "MIT License",
+    "BSD-3-Clause": "BSD 3-Clause License",
+    "ISC": "ISC License",
+    "GPL-3.0-or-later": "GNU GENERAL PUBLIC LICENSE",
+    "LGPL-3.0-or-later": "GNU LESSER GENERAL PUBLIC LICENSE",
+}
+
 ALL_SUBSETS = [list(combo) for size in range(len(MODULES) + 1) for combo in combinations(MODULES, size)]
 
 
@@ -75,6 +89,30 @@ def test_each_building_block_brings_exactly_its_files(generate, modules):
                 assert exists, f"{path} is missing from a project built with {module}"
             else:
                 assert not exists, f"{path} survived in a project built without {module}"
+
+
+@pytest.mark.parametrize("license", LICENSE_MARKERS)
+def test_the_license_answer_decides_which_file_lands(generate, license):
+    # The other five are absent, not empty: the condition lives in the FILENAME
+    # and a name that renders to nothing is skipped. Looking only for the
+    # expected file would not see a template that writes several of them.
+    project = generate(license=license)
+    landed = sorted(path.name for path in project.iterdir() if path.name.startswith("LICENSE"))
+
+    marker = LICENSE_MARKERS[license]
+    if marker is None:
+        assert landed == [], "a project with no license gets no license file"
+        return
+
+    assert landed == ["LICENSE"]
+    # The right TEXT, not merely a file: the six are one copy and one rename
+    # apart, so a wrong condition is invisible from the file name alone.
+    text = (project / "LICENSE").read_text()
+    assert marker in text
+    if license != "LGPL-3.0-or-later":
+        # That one text carries no copyright line: the FSF's "how to apply"
+        # appendix belongs to the GPL, and the LGPL as shipped has no such tag.
+        assert BASE_ANSWERS["author_name"] in text
 
 
 def test_mlflow_rewrites_content_instead_of_adding_files(generate):

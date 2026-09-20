@@ -9,7 +9,7 @@ _subdirectory: template
 # changes them — `copier copy --overwrite` and `copier update` both leave them
 # alone.
 #
-# The list stops here on purpose. Those three are artefacts of the user's
+# The list stops here on purpose. Those four are artefacts of the user's
 # project, where the template's version is only a starting point. The files the
 # generated README invites the user to adapt — `params.py`, `data.py`,
 # `model.py` and the rest — are CODE, and a fix to code has to be able to reach
@@ -17,10 +17,17 @@ _subdirectory: template
 # applies a three-way patch, so a template change lands without erasing what
 # the user wrote around it, and a real conflict is reported instead of being
 # applied.
+#
+# LICENSE is on the list for a reason of its own: a legal document is not a
+# file the template should have an opinion about after the fact. It carries the
+# year of generation and nothing the template will ever need to correct, and a
+# project that added its own clauses — a company name, a jurisdiction — would
+# lose them to an update that had no business touching it.
 _skip_if_exists:
   - .gitignore
   - README.md
   - notebooks/*.ipynb
+  - LICENSE
 
 # Copier already filters `template/` through .gitignore, so the leftovers of a
 # local run — a dataset, a virtualenv, a .pkl — are skipped anyway. These

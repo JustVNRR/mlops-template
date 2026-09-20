@@ -31,7 +31,8 @@ the generated `README.md`.
 | `package_short_description` | the project name | `pyproject.toml` description |
 | `author_name` | **required** | `pyproject.toml` |
 | `author_email` | **required**, refused unless it looks like an address | `pyproject.toml` |
-| `license` | `Proprietary` by default | `pyproject.toml` |
+| `license` | `Proprietary` by default | `pyproject.toml`, and the `LICENSE` file |
+| `copyright_holder` | the author — asked only for an open license | `LICENSE` |
 | `modules` | all three by default | which optional building blocks the project gets |
 
 The required ones have a `placeholder` and no `default`: the field shows an
@@ -59,6 +60,20 @@ an instruction to write `1.0.0`.
 which keeps the generated `pyproject.toml` unchanged for anyone who presses
 Enter. A title is a poor description, but it is a better one than an empty
 string.
+
+The license list is the one [NLeSC/python-template](https://github.com/NLeSC/python-template)
+offers — Apache-2.0, MIT, BSD-3-Clause, ISC, GPL-3.0-or-later, LGPL-3.0-or-later
+— with `Proprietary` in place of their `Other`. "Not one of these, all rights
+reserved" is a decision a project can make, not a blank to fill in later, and it
+is the default. The six open licenses each write their `LICENSE` text, and ask
+who holds the copyright; `Proprietary` writes no file and asks nothing, because
+there is no text to put the name in.
+
+Only one of the six is ever written, and the condition is in the **filename**:
+`{% if license == 'MIT' %}LICENSE{% endif %}.jinja` renders to nothing for the
+other five, and a name that renders to nothing is a file Copier skips. That is
+also why the tests look for the five missing files rather than the one expected
+one — a broken condition writes all six, or none.
 
 ### The building blocks
 
@@ -88,11 +103,17 @@ a `gcp` condition.
 
 ### What the project owns
 
-Three files belong to the generated project from the moment it exists:
-`.gitignore`, `README.md` and the notebooks. `_skip_if_exists` means the
-template never touches them again — not on `copier update`, and not on a second
-`copier copy --overwrite` — so the user can make them theirs without wondering
-what the next update will do to them.
+Four files belong to the generated project from the moment it exists:
+`.gitignore`, `README.md`, the notebooks and `LICENSE`. `_skip_if_exists` means
+the template never touches them again — not on `copier update`, and not on a
+second `copier copy --overwrite` — so the user can make them theirs without
+wondering what the next update will do to them.
+
+`LICENSE` is on that list for a reason of its own. A legal document is not
+something the template should keep an opinion about after the fact: it carries
+the year of generation and nothing the template will ever need to correct, and
+a project that added its own clauses would lose them to an update that had no
+business touching it.
 
 Nothing else is on that list. The files the generated `README.md` invites the
 user to adapt — `params.py`, `data.py`, `model.py` and the rest — are code, and
