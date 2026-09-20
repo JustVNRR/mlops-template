@@ -62,8 +62,8 @@ GCP_ONLY_TARGETS = [
     "artifact_registry_create",
     "artifact_registry_role",
     "artifact_registry_auth",
-    "docker_build_prod",
-    "docker_push_prod",
+    "artifact_registry_build",
+    "artifact_registry_push",
 ]
 
 # What a file copied without being rendered keeps: a Jinja substitution
