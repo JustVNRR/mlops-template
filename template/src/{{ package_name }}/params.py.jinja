@@ -128,12 +128,12 @@ GAR_IMAGE = _optional("GAR_IMAGE")
 {% if with_gcp %}# Memory granted to the Cloud Run service
 GAR_MEMORY = _optional("GAR_MEMORY")
 {% endif %}
-# --- Notifications (webhook) ---
+{% if with_prefect %}# --- Notifications (the scheduling flow) ---
 NOTIFY_BASE_URL = _optional("NOTIFY_BASE_URL")
 NOTIFY_CHANNEL = _optional("NOTIFY_CHANNEL")
 NOTIFY_AUTHOR = _optional("NOTIFY_AUTHOR")
 
-##################  VALIDATIONS  ##################
+{% endif %}##################  VALIDATIONS  ##################
 # Lists rather than tuples: a single-element tuple needs a trailing comma, and
 # the trailing comma forces the formatter to explode the line.
 VALID_MODEL_TARGETS = ["local"{% if with_gcp %}, "gcs"{% endif %}{% if with_mlflow %}, "mlflow"{% endif %}]
@@ -187,10 +187,10 @@ DTYPES_RAW = {
     "numeric_feature_3": "int8",
     "categorical_feature_1": "category",
     TARGET_COLUMN: "float32",
-}
+}{% if with_prefect %}
 
 ##################  BUSINESS THRESHOLDS  #################
 # MAE below which a model is considered acceptable by the promotion workflow
 # (see interface/workflow.py). Configurable through .env: a quality target
 # changes often, the code should not have to.
-MAE_THRESHOLD = _float("MAE_THRESHOLD", 3.0)
+MAE_THRESHOLD = _float("MAE_THRESHOLD", 3.0){% endif %}

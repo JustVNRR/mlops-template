@@ -206,6 +206,19 @@ jobs:
           docker logs api-ci
           exit 1
 
+      # The generated README promises it: with no model in the image, `/predict`
+      # answers 503 with the cause, instead of the API failing at startup.
+      # Nothing checked it, so a regression would have gone unnoticed.
+      - name: Check /predict answers 503 with no model
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' \
+            "http://localhost:8000/predict?numeric_feature_1=5&numeric_feature_2=2&numeric_feature_3=14&categorical_feature_1=a")
+          if [ "$code" != "503" ]; then
+            echo "❌ /predict answered $code, expected 503 with no model"
+            exit 1
+          fi
+          echo "✅ /predict answers 503 with no model, as the README says"
+
       - name: Container logs
         if: always()
         run: docker logs api-ci 2>/dev/null || true
