@@ -330,8 +330,9 @@ it is a **renaming plus a data source**, not a rewrite.
    hyperparameters.
 6. **`api/schemas.py`** — align the input contract with your features. This file
    restates the schema by hand, so keep the two in step.
-7. **`ml_logic/registry.py`** — {% if with_mlflow or with_gcp %}implement MLflow or
-   GCS loading if you want to move beyond the local registry.{% else %}extend the
-   local registry with the tracking service of your choice.{% endif %}
+7. **`ml_logic/registry.py`** — {% if with_mlflow or with_gcp %}implement the loading path for
+   {% if with_mlflow and with_gcp %}MLflow or GCS{% elif with_mlflow %}MLflow{% else %}GCS{% endif %}, if you want to move beyond
+   the local registry.{% else %}extend the local registry with the tracking service of your
+   choice.{% endif %}
 8. **Swagger documentation** — the API title and description live in
    `api/fast.py`.
