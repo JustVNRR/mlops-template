@@ -16,6 +16,7 @@ combination of building blocks, where the CI samples two.
 
 import json
 import re
+import subprocess
 import tomllib
 from itertools import combinations
 from pathlib import Path
@@ -226,6 +227,32 @@ def test_the_generated_files_are_parseable(generate):
     assert notebooks
     for notebook in notebooks:
         assert json.loads(notebook.read_text())["nbformat"] == 4
+
+
+@pytest.mark.parametrize("modules", ALL_SUBSETS, ids=lambda modules: "+".join(modules) or "none")
+def test_every_combination_lints_and_formats(generate, modules):
+    # The CI applies these two checks to the projects it installs, and it
+    # installs two combinations — every block, and none. The six others are
+    # only asserted on what they contain, so a guard that renders invalid
+    # Python for one of them would reach a user before anyone sees it.
+    #
+    # Ruff decides, rather than a plain parse: the tag-newline rule of
+    # `copier.yml` breaks formatting well before it breaks syntax, and it is
+    # the failure this template has actually met.
+    project = generate(modules=modules)
+
+    for arguments in (["check"], ["format", "--check"]):
+        result = subprocess.run(
+            ["ruff", *arguments, str(project)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        assert result.returncode == 0, (
+            f"ruff {' '.join(arguments)} failed on a project built with {modules or 'no block'}:\n"
+            f"{result.stdout}{result.stderr}"
+        )
 
 
 def test_the_answers_file_records_what_was_answered(generate):
