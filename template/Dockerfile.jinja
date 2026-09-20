@@ -1,5 +1,7 @@
-# 1. Retrieve the base image dynamically (passed by the Makefile / .env)
-ARG DOCKER_BASE_IMAGE
+# 1. Retrieve the base image dynamically (passed by the Makefile / .env).
+#    The default is what the linter reads: it evaluates this file without the
+#    --build-arg, and a FROM whose ARG is empty is a warning on every build.
+ARG DOCKER_BASE_IMAGE=python:3.12-slim
 FROM ${DOCKER_BASE_IMAGE}
 
 # 2. Bring in uv (official static binary). No pip, no requirements.txt:
