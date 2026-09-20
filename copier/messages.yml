@@ -23,7 +23,7 @@ _message_after_copy: |
   Next steps:
 
     1. cd {{ _copier_conf.dst_path }}
-    2. cp .env.sample .env       # then fill in your credentials (GCP, MLflow...)
+    2. cp .env.sample .env       # then fill in the file
     3. uv sync                   # creates the .venv/ AND generates the uv.lock
     4. git init && git add -A
     5. git commit -m "Initial commit"
