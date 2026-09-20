@@ -25,12 +25,14 @@ the generated `README.md`.
 
 | Question | Answer | What it drives |
 |---|---|---|
-| `project_name` | **required** — suggested in grey as a placeholder | README title, `pyproject.toml` description |
+| `project_name` | **required** — suggested in grey as a placeholder | README title, the package docstring |
 | `package_name` | derived from the name above | `src/`, every import, `uvicorn`, custom commands |
+| `version` | `0.1.0`, refused unless it is `MAJOR.MINOR.PATCH` | `pyproject.toml` |
+| `package_short_description` | the project name | `pyproject.toml` description |
 | `author_name` | **required** | `pyproject.toml` |
 | `author_email` | **required**, refused unless it looks like an address | `pyproject.toml` |
 | `license` | `Proprietary` by default | `pyproject.toml` |
-| `modules` | all four by default | which optional building blocks the project gets |
+| `modules` | all three by default | which optional building blocks the project gets |
 
 The required ones have a `placeholder` and no `default`: the field shows an
 example in grey, and the question comes back until something is typed. A
@@ -44,6 +46,19 @@ backend parses that field: hatchling reads `authors[].email` and refuses to
 build a project whose address is malformed. A space, or a domain without a dot,
 and the generated project cannot even `uv sync`. The validator accepts what
 hatchling accepts, minus the exotic forms nobody types.
+
+The version is held to a rule of its own, for the same reason: hatchling reads
+`project.version` and refuses to build what it cannot parse — `abc` and an
+empty string both stop it. The rule runs the **other way** from the email rule,
+though: it is narrower than what hatchling takes. `MAJOR.MINOR.PATCH` is the one
+shape everybody writes, and asking only for that lets the message name an
+example instead of a grammar. So `1.0`, which hatchling accepts, is refused with
+an instruction to write `1.0.0`.
+
+`package_short_description` is the one question whose default is another answer,
+which keeps the generated `pyproject.toml` unchanged for anyone who presses
+Enter. A title is a poor description, but it is a better one than an empty
+string.
 
 ### The building blocks
 

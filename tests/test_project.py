@@ -142,7 +142,13 @@ def test_the_generated_files_are_parseable(generate):
     project = generate()
 
     with (project / "pyproject.toml").open("rb") as handle:
-        assert tomllib.load(handle)["project"]["name"] == PACKAGE
+        metadata = tomllib.load(handle)["project"]
+    assert metadata["name"] == PACKAGE
+    # Both of these have a default, so reading back the default would pass with
+    # the wiring cut: the answers are deliberately not what the template would
+    # have written on its own.
+    assert metadata["version"] == BASE_ANSWERS["version"]
+    assert metadata["description"] == BASE_ANSWERS["package_short_description"]
 
     # A notebook that does not parse is a corrupted file, not a broken notebook.
     notebooks = list((project / "notebooks").glob("*.ipynb"))
@@ -160,6 +166,8 @@ def test_the_answers_file_records_what_was_answered(generate):
     assert answers["project_name"] == BASE_ANSWERS["project_name"]
     assert answers["package_name"] == PACKAGE
     assert answers["author_name"] == BASE_ANSWERS["author_name"]
+    assert answers["version"] == BASE_ANSWERS["version"]
+    assert answers["package_short_description"] == BASE_ANSWERS["package_short_description"]
     assert answers["modules"] == MODULES
 
 

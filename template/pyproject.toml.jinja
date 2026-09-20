@@ -4,14 +4,14 @@ build-backend = "hatchling.build"
 
 [project]
 name = "{{ package_name }}"
-version = "0.0.1"
+version = "{{ version }}"
 # The three free-text answers are escaped before landing between quotes: a `"`
 # in a name would otherwise end the TOML string early, and a `\` would start an
 # escape sequence of its own. Written raw, `Mr. "Quoted" Project` produced a
 # pyproject.toml nothing could read — and Copier exited 0 without a word.
-# `package_name` (validated against a regex) and `license` (a fixed list of
-# choices) cannot contain either character.
-description = "{{ project_name | replace('\\', '\\\\') | replace('"', '\\"') }}"
+# `package_name`, `version` (both validated against a regex) and `license` (a
+# fixed list of choices) cannot contain either character.
+description = "{{ package_short_description | replace('\\', '\\\\') | replace('"', '\\"') }}"
 readme = "README.md"
 requires-python = ">=3.11"
 
