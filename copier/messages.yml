@@ -12,6 +12,14 @@ _message_before_copy: |
 _message_after_copy: |
   Your project {{ project_name }} is ready! 🚀
 
+  Everything here goes through `uv` — the virtualenv, the lock file, and every
+  command the Makefile runs. Check you have it:
+
+      uv --version
+
+  Not found? Install it first:
+  https://docs.astral.sh/uv/getting-started/installation/
+
   Next steps:
 
     1. cd {{ _copier_conf.dst_path }}
