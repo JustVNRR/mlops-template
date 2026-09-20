@@ -1,10 +1,13 @@
 """
 Logging setup.
 
-Loguru owns the application's log stream. Uvicorn and Prefect, which write to
+{% if with_prefect %}Loguru owns the application's log stream. Uvicorn and Prefect, which write to
 the standard `logging` module, are routed into it, so a serving or orchestrating
 process emits ONE stream in ONE format instead of two interleaved ones.
-
+{% else %}Loguru owns the application's log stream. Uvicorn, which writes to the standard
+`logging` module, is routed into it, so a serving process emits ONE stream in
+one format instead of two interleaved ones.
+{% endif %}
 `setup_logging()` runs when the package is imported (see `__init__.py`).
 """
 
