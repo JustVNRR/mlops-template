@@ -142,6 +142,11 @@ UNIMPLEMENTED_TARGETS = [{% if with_gcp %}"gcs", {% endif %}{% if with_mlflow %}
 
 def test_save_model_raises_on_unimplemented_target(local_registry, monkeypatch):
     """An unimplemented target must fail loudly, not silently."""
+    if not UNIMPLEMENTED_TARGETS:
+        # Asserting over an empty list would pass while checking nothing, and a
+        # test that cannot fail is worse than no test.
+        pytest.skip("every target this project can be asked for is implemented")
+
     for target in UNIMPLEMENTED_TARGETS:
         monkeypatch.setattr(registry, "MODEL_TARGET", target)
 
@@ -154,6 +159,9 @@ def test_save_model_writes_nothing_on_unimplemented_target(local_registry, monke
     The target is validated BEFORE writing: otherwise a model would be left on
     disk while an exception is raised (a partial success).
     """
+    if not UNIMPLEMENTED_TARGETS:
+        pytest.skip("every target this project can be asked for is implemented")
+
     for target in UNIMPLEMENTED_TARGETS:
         monkeypatch.setattr(registry, "MODEL_TARGET", target)
 

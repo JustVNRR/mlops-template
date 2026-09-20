@@ -40,9 +40,8 @@ jobs:
             .
 
       # Start the container and query the API: this checks that the image does
-      # not merely build, but that the API actually answers. `GET /` only — the
-      # 503 that `/predict` ought to return when no model ships in the image,
-      # rather than crashing on import, is asserted nowhere yet.
+      # not merely build, but that the API answers, and that it starts with no
+      # model in it — the two promises the README makes about it.
       - name: Start the container and check the API answers
         run: |
           docker run -d --name api-ci -e PORT=8000 -p 8000:8000 api:ci
@@ -59,6 +58,19 @@ jobs:
           echo "❌ The API never answered. Container logs:"
           docker logs api-ci
           exit 1
+
+      # The README promises it: with no model in the image, `/predict` answers
+      # 503 with the cause, instead of the API failing at startup. Nothing
+      # checked it, so a regression would have gone unnoticed.
+      - name: Check /predict answers 503 with no model
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' \
+            "http://localhost:8000/predict?numeric_feature_1=5&numeric_feature_2=2&numeric_feature_3=14&categorical_feature_1=a")
+          if [ "$code" != "503" ]; then
+            echo "❌ /predict answered $code, expected 503 with no model"
+            exit 1
+          fi
+          echo "✅ /predict answers 503 with no model, as the README says"
 
       - name: Container logs
         if: always()

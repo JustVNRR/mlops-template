@@ -44,14 +44,13 @@ dependencies = [
   # --- Model lifecycle ---
 {% if with_mlflow %}  "mlflow>=2.14",
 {% endif %}{% if with_prefect %}  "prefect>=2.19",
+  "python-dateutil>=2.9",   # relativedelta, for the dates the flow computes
 {% endif %}
 
   # --- Utilities ---
   "python-dotenv>=1.0",
   "loguru>=0.7",       # logging: replaces both print() and colorama
-  "pygeohash>=1.2",
   "requests>=2.32",
-  "python-dateutil>=2.9",
 ]
 
 # DEVELOPMENT dependencies (PEP 735).

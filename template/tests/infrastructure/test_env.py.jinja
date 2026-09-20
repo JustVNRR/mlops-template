@@ -30,6 +30,10 @@ def test_critical_env_variables_are_set():
 
     # Add here any variable your project absolutely requires.
     critical_vars = [{% if with_gcp %}"GCP_PROJECT", "GCP_REGION", "BUCKET_NAME"{% endif %}]
+    if not critical_vars:
+        # Nothing to assert: asserting over an empty list would pass while
+        # checking nothing, and a test that cannot fail is worse than none.
+        pytest.skip("no building block of this project requires a variable")
 
     for var in critical_vars:
         value = os.getenv(var)

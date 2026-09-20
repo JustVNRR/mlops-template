@@ -102,8 +102,8 @@ commented contract). The variables that matter at startup:
 | `MODEL_TARGET` | `local` | Where models are stored: `local`{% if with_gcp %}, `gcs`{% endif %}{% if with_mlflow %}, `mlflow`{% endif %} |
 | `DATA_SOURCE` | `demo` | Data source: `demo` (synthetic){% if with_gcp %} or `bigquery`{% endif %} |
 | `DATA_SIZE` | `2000` | Size of the synthetic dataset (`1k`, `200k`, `all`…) |
-| `MAE_THRESHOLD` | `3.0` | Quality bar below which a model gets promoted |
-| `LOG_LEVEL` | `INFO` | Log verbosity: `DEBUG` adds the per-file chatter |
+{% if with_prefect %}| `MAE_THRESHOLD` | `3.0` | Quality bar below which a model gets promoted |
+{% endif %}| `LOG_LEVEL` | `INFO` | Log verbosity: `DEBUG` adds the per-file chatter |
 {% if with_gcp %}| `GCP_*`, `BUCKET_NAME` | — | Only needed for the cloud |
 {% endif %}
 
