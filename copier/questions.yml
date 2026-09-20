@@ -27,6 +27,33 @@ package_name:
     → Use lowercase letters, digits and underscores only, starting with a letter.
     {% endif %}
 
+# The build backend parses this one as well: hatchling reads `project.version`
+# and refuses to build a project whose version it cannot parse. Measured, with
+# the default as a control: `abc` and an empty string stop it dead, while `1.0`,
+# `1.0.0-rc.1` and even `0.1.0.0` go through.
+#
+# The rule below is deliberately NARROWER than what hatchling takes, which is
+# the opposite of the email validator: it asks for the one shape everybody
+# writes, so the message can name a single example instead of a grammar. Someone
+# who wanted `1.0` is told to write `1.0.0` rather than left guessing.
+version:
+  type: str
+  help: "What is the initial version of the package?"
+  default: "0.1.0"
+  validator: >-
+    {% if not (version | regex_search('^[0-9]+\\.[0-9]+\\.[0-9]+\\Z')) %}
+    ❌ '{{ version }}' is not a version number.
+    → Expected MAJOR.MINOR.PATCH, like '0.1.0'. The build backend reads this field and refuses to build a project whose version it cannot parse.
+    {% endif %}
+
+# A title is a poor description, and `pyproject.toml` has a field for the
+# sentence. The default is the project name, so answering nothing leaves that
+# field exactly as it was before this question existed.
+package_short_description:
+  type: str
+  help: "How would you describe the package in one line?"
+  default: "{{ project_name }}"
+
 author_name:
   type: str
   help: "Who is the author? (Full Name)"

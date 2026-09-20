@@ -9,6 +9,10 @@ import pytest
 BASE_ANSWERS = {
     "project_name": "Churn Prediction",
     "package_name": "churn_prediction",
+    # Not the question's own default (`0.1.0`): a value the template would have
+    # written anyway makes every assertion below pass with the wiring cut.
+    "version": "2.3.1",
+    "package_short_description": "Predict which customers are about to leave",
     "author_name": "Jane Doe",
     "author_email": "jane@example.com",
     "license": "MIT",
