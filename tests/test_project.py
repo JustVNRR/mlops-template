@@ -15,6 +15,7 @@ combination of building blocks, where the CI samples two.
 """
 
 import json
+import re
 import tomllib
 from itertools import combinations
 from pathlib import Path
@@ -103,6 +104,26 @@ def test_the_gcp_targets_are_back_when_gcp_was_ticked(generate):
         assert target in docker_make
 
 
+def test_the_readme_only_names_targets_the_project_has(generate):
+    # Documenting a target the project does not have is worse than omitting a
+    # real one: the reader types it, make refuses, and the project looks broken.
+    # It is also invisible to a search for the building block's name — the cloud
+    # tier is reached through `test_api_cloud`, which says neither GCP nor
+    # gcloud.
+    full = generate(modules=MODULES)
+    minimal = generate(modules=[])
+    mentioned = {project: mentioned_targets(project) for project in (full, minimal)}
+
+    for project, targets in mentioned.items():
+        invented = targets - defined_targets(project)
+        assert not invented, f"the README documents targets that do not exist: {sorted(invented)}"
+
+    # The guard above must not be satisfied by documenting nothing at all: the
+    # cloud tier is named where its target exists.
+    assert "test_api_cloud" in mentioned[full]
+    assert "test_api_cloud" not in mentioned[minimal]
+
+
 def test_no_answer_placeholder_survives(generate):
     project = generate()
 
@@ -145,3 +166,34 @@ def test_the_answers_file_records_what_was_answered(generate):
 def project_dependencies(project: Path) -> list[str]:
     with (project / "pyproject.toml").open("rb") as handle:
         return tomllib.load(handle)["project"]["dependencies"]
+
+
+def mentioned_targets(project: Path) -> set[str]:
+    """Every `make <target>` the README invites the reader to run.
+
+    Two shapes count: a command on a line of its own inside a fenced block, and
+    a backticked mention in prose. The README also talks about make without
+    naming a target — the `Makefile`, the `make: No rule to make target` error —
+    so the word alone is not enough.
+    """
+    readme = (project / "README.md").read_text()
+    targets = set(re.findall(r"`make ([a-z][a-z0-9_]*)`", readme))
+
+    in_fence = False
+    for line in readme.splitlines():
+        if line.startswith("```"):
+            in_fence = not in_fence
+        elif in_fence and (command := re.match(r"make ([a-z][a-z0-9_]*)", line)):
+            targets.add(command.group(1))
+
+    return targets
+
+
+def defined_targets(project: Path) -> set[str]:
+    """Every target the project's Makefile defines, sub-makefiles included."""
+    sources = [project / "Makefile", *sorted((project / "make").glob("*.mk"))]
+    return {
+        target.group(1)
+        for source in sources
+        for target in re.finditer(r"^([a-z][a-z0-9_-]*):", source.read_text(), re.MULTILINE)
+    }

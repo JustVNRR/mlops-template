@@ -182,10 +182,10 @@ make test_api_local
 make docker_build_local
 make docker_run_local
 make test_api_docker
-
+{% if with_gcp %}
 # In production: the actually deployed URL
 make test_api_cloud
-```
+{% endif %}```
 
 ### Tests
 
