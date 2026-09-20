@@ -5,6 +5,21 @@ project: training, experiment tracking, a serving API and GCP deployment —
 driven by a Makefile, checked by a CI, and **runnable straight away, with no
 cloud account**.
 
+## 📋 Prerequisites
+
+Three things on your machine:
+
+| | What it is for | Install |
+|---|---|---|
+| **uv** | runs everything in the generated project — the virtualenv, the lock file, every Makefile target | `pip install uv`, or the [standalone installer](https://docs.astral.sh/uv/getting-started/installation/) |
+| **Copier** | generates the project — once | `uv tool install copier` |
+| **git** | Copier clones the template from GitHub before it can ask anything | your package manager, or [git-scm.com](https://git-scm.com/downloads) |
+
+uv is the one that stays: Copier runs once, at generation, while uv sits behind
+every command the project will ever run. It also brings its own Python — the
+project pins its version in `.python-version`, and uv installs it if you do not
+have it.
+
 ## 🚀 Generate a project
 
 ```bash
