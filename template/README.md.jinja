@@ -253,30 +253,6 @@ locally.
 
 ---
 
-## 🌿 Git workflow
-
-The repository follows one simple rule: **one work batch = one branch = one
-commit**.
-
-```bash
-git switch -c fix/my-topic           # prefixes: chore, fix, feat, ci, refactor, docs
-# ... work, `make test_all`, `make lint` ...
-git commit -m "fix: ..."
-git push -u origin fix/my-topic      # the CI runs on the branch
-
-git switch main
-git merge --no-ff fix/my-topic       # --no-ff: keeps the batch visible
-git push origin main
-git branch -d fix/my-topic           # -d refuses an unmerged branch
-git push origin --delete fix/my-topic
-```
-
-`--no-ff` is not cosmetic: without it, git performs a *fast-forward*, the batch
-disappears from the history and becomes impossible to revert as a whole
-(`git revert -m 1 <merge>`).
-
----
-
 ## 🔧 Troubleshooting
 
 | Symptom | Cause and fix |
