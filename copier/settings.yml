@@ -47,6 +47,7 @@ _exclude:
   - "{% if not with_gcp %}make/bigquery.mk{% endif %}"
   - "{% if not with_gcp %}make/vm.mk{% endif %}"
   - "{% if not with_gcp %}make/cloudrun.mk{% endif %}"
+  - "{% if not with_gcp %}make/artifact_registry.mk{% endif %}"
   - "{% if not with_gcp %}scripts/setup_vm.sh{% endif %}"
   - "{% if not with_gcp %}tests/infrastructure/test_gcp_setup.py{% endif %}"
   - "{% if not with_gcp %}tests/api/test_cloud_endpoints.py{% endif %}"
