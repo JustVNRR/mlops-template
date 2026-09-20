@@ -8,8 +8,8 @@ cloud account**.
 ## 🚀 Generate a project
 
 ```bash
-copier copy gh:JustVNRR/mlops-template my-project
-cd my-project
+copier copy gh:JustVNRR/mlops-template <project-folder>
+cd <project-folder>
 ```
 
 Copier asks a few questions, writes the project, and prints the next steps. No
@@ -56,19 +56,20 @@ sections simply are not there — not commented out, absent.
 | `gcp` | BigQuery, Cloud Storage, a training VM, Cloud Run | `make/{gcp,bigquery,vm,cloudrun}.mk`, the cloud dependencies, the GCP tests, `DATA_SOURCE=bigquery` |
 | `mlflow` | experiment tracking, model registry, aliases | the MLflow half of `registry.py`, the `@mlflow_run` decorators, the promotion step of the workflow |
 | `prefect` | orchestration of the full retraining cycle | `interface/workflow.py` in its entirety, `make run_workflow` |
-| `docker` | packaging the API as an image | the `Dockerfile`, `docker-compose.yml`, `make/docker.mk`, the Docker CI workflow |
 
 Every combination the questions allow is meant to work, and
-`tests/test_project.py` tries all twelve of them.
+`tests/test_project.py` tries all eight of them.
 
-`gcp` and `docker` overlap, and the overlap is a rule rather than a
-convenience: Cloud Run deploys an image that only `make/docker.mk` knows how to
-build, so **`gcp` without `docker` is refused**. The question comes back and
-asks you to tick Docker again or to drop GCP. Nothing is re-ticked on your
-behalf — a template that silently reverses an answer teaches the user that the
-answers do not matter. Publishing an image to Artifact Registry needs both
-blocks as well, which is why those targets live in `make/docker.mk` under a
-`gcp` condition.
+The container is deliberately **not** on that list. `Dockerfile`,
+`docker-compose.yml`, `make/docker.mk` and the container tier of the API tests
+have nothing to do with the cloud: they are how the API is run under the
+conditions it meets in production, and how the image that a deployment needs
+gets built. Unticking everything still leaves `make docker_build_local` and
+`make test_api_docker`.
+
+`gcp` reaches into `make/docker.mk` exactly once — publishing an image to
+Artifact Registry needs both — so those targets live with the container, under
+a `gcp` condition.
 
 ### What the project owns
 

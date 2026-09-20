@@ -6,7 +6,7 @@
 # never rendered.
 #
 # Usage:
-#     copier copy gh:JustVNRR/mlops-template my-project
+#     copier copy gh:JustVNRR/mlops-template <project-folder>
 #
 # This file is only an index. Copier reads every YAML document of it and merges
 # them, so each `!include` below is an ordinary file under copier/, holding one

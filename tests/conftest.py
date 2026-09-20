@@ -16,7 +16,9 @@ BASE_ANSWERS = {
 
 PACKAGE = BASE_ANSWERS["package_name"]
 
-MODULES = ["gcp", "mlflow", "prefect", "docker"]
+# The blocks the `modules` question offers. The container is not among them: it
+# is in every project, whatever is ticked.
+MODULES = ["gcp", "mlflow", "prefect"]
 
 
 @pytest.fixture

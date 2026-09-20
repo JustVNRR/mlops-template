@@ -15,8 +15,8 @@ Generated from the
 |---|---|---|
 | **GNU make** | Every project command goes through it | `sudo apt install make` (preinstalled on macOS) |
 | **uv** | Python environments and dependencies | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
-{% if with_docker %}| **Docker** | Step 2 of the API tests, and the image build | [Docker Desktop](https://www.docker.com/products/docker-desktop/) |
-{% endif %}| **git** | Obviously | — |
+| **Docker** | Step 2 of the API tests, and the image build | [Docker Desktop](https://www.docker.com/products/docker-desktop/) |
+| **git** | Obviously | — |
 {% if with_gcp %}| **gcloud CLI** | Everything under `make/gcp.mk`, `vm.mk`, `bigquery.mk`, `cloudrun.mk` | [Install](https://cloud.google.com/sdk/docs/install) |
 {% endif %}
 
@@ -41,8 +41,8 @@ make run_api                   # the API starts on http://127.0.0.1:8000
 ```
 
 Commit the `uv.lock` that `uv sync` just generated: the CI installs with
-`uv sync --frozen`, which fails without it{% if with_docker %}, and so
-does the `Dockerfile`{% endif %}.
+`uv sync --frozen`, which fails without it, and so
+does the `Dockerfile`.
 
 `make run_all` works with **no cloud account at all**: the project ships with a
 synthetic dataset, trains a reference scikit-learn model and produces
@@ -74,16 +74,16 @@ predictions. Replace the pieces one at a time with your own afterwards (see
 │           └── encoders.py    #     a place for your custom encoders
 ├── make/                      # Makefile targets, grouped by domain
 ├── tests/
-│   ├── api/                   #   the validation tiers (local, cloud{% if with_docker %}, docker{% endif %})
+│   ├── api/                   #   the validation tiers (local, cloud, docker)
 │   ├── ml_logic/              #   unit tests of the pipeline
 │   └── infrastructure/        #   environment checks
 ├── notebooks/                 # exploration + API usage
 ├── models/                    # local registry (git-ignored)
 {% if with_gcp %}├── scripts/                   # VM provisioning
 {% endif %}
-{% if with_docker %}├── Dockerfile                 # the API image
+├── Dockerfile                 # the API image
 ├── docker-compose.yml         # local container, hot-reloaded
-{% endif %}├── .github/workflows/       # CI: lint, tests{% if with_docker %}, Docker build{% endif %}
+├── .github/workflows/       # CI: lint, tests, Docker build
 ├── pyproject.toml             # dependencies, ruff, pytest
 └── uv.lock                    # locked versions (generated, committed)
 ```
@@ -178,12 +178,12 @@ Each tier catches what the previous one cannot see:
 # In memory: logic and API contract
 make test_api_local
 
-{% if with_docker %}# Inside the container: missing dependencies, broken image
+# Inside the container: missing dependencies, broken image
 make docker_build_local
 make docker_run_local
 make test_api_docker
 
-{% endif %}# In production: the actually deployed URL
+# In production: the actually deployed URL
 make test_api_cloud
 ```
 
@@ -226,9 +226,9 @@ make iam_setup_service_account
 ### API in production
 
 ```bash
-{% if with_docker %}make docker_build_prod      # linux/amd64 image
+make docker_build_prod      # linux/amd64 image
 make docker_push_prod       # to Artifact Registry
-{% endif %}make cloudrun_deploy        # to Cloud Run
+make cloudrun_deploy        # to Cloud Run
 make cloudrun_url           # fetch the URL for SERVICE_URL
 ```
 {% endif %}
@@ -242,12 +242,11 @@ make cloudrun_url           # fetch the URL for SERVICE_URL
 |---|---|---|
 | `ci.yml` | **Lint** | `ruff check` + `ruff format --check` |
 | `ci.yml` | **Tests** | The tests, with no secrets (the `.env` is recreated from `.env.sample`) |
-{% if with_docker %}| `docker.yml` | **Docker** | The image builds **and** the API actually answers inside the container |
-{% endif %}
-{% if with_docker %}The Docker workflow is the only place where the `Dockerfile` is validated
+| `docker.yml` | **Docker** | The image builds **and** the API actually answers inside the container |
+
+The Docker workflow is the only place where the `Dockerfile` is validated
 automatically — handy when the container tier of the API tests is not run
-locally.{% else %}Both workflows run with no secrets at all: that is what lets a public
-fork stay green.{% endif %}
+locally.
 
 ---
 

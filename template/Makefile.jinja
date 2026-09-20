@@ -12,8 +12,8 @@ SA_EMAIL = $(SA_NAME)@$(GCP_PROJECT).iam.gserviceaccount.com
 {% if with_gcp %}# include make/gcp.mk
 # include make/bigquery.mk
 # include make/vm.mk
-{% endif %}{% if with_docker %}# include make/docker.mk
-{% endif %}{% if with_gcp %}# include make/cloudrun.mk
+{% endif %}# include make/docker.mk
+{% if with_gcp %}# include make/cloudrun.mk
 {% endif %}# include make/pipeline.mk
 # include make/github.mk
 # include make/tests.mk

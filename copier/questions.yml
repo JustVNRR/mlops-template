@@ -79,22 +79,14 @@ modules:
       gcp     → BigQuery, Cloud Storage, a training VM, Cloud Run deployment
       mlflow  → Experiment tracking and model registry
       prefect → Orchestration of the pipeline
-      docker  → Packaging the API as a container image
+
+    The container is not on this list: the API ships with its Dockerfile,
+    docker-compose.yml and its container tests whatever you answer here.
   choices:
     - gcp
     - mlflow
     - prefect
-    - docker
   default:
     - gcp
     - mlflow
     - prefect
-    - docker
-  # The one impossible combination. GCP is refused without Docker rather than
-  # quietly given it: un-ticking a box is a decision, and a template that
-  # reverses it teaches the user that the questions do not matter.
-  validator: >-
-    {% if 'gcp' in modules and 'docker' not in modules %}
-    ❌ GCP needs the Docker block — Cloud Run deploys an image, and only the Docker block builds one.
-    → Tick docker again, or drop gcp.
-    {% endif %}

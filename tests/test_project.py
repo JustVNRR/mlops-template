@@ -24,18 +24,23 @@ import yaml
 
 from conftest import BASE_ANSWERS, MODULES, PACKAGE
 
-# What each building block puts on disk. `mlflow` is missing on purpose: it adds
-# no file, it rewrites the content of files that are always there, so it gets
-# its own test.
+# What every project receives, whatever was ticked. The container is not a
+# building block: `make docker_build_local`, `make test_api_docker` and the
+# docker-compose file have nothing to do with the cloud, and the container tier
+# is the only way to run the API under the conditions it meets in production.
+ALWAYS_THERE = [
+    "Dockerfile",
+    ".dockerignore",
+    "docker-compose.yml",
+    "make/docker.mk",
+    "tests/api/test_docker_endpoints.py",
+    ".github/workflows/docker.yml",
+]
+
+# What each building block adds. `mlflow` is missing on purpose: it adds no
+# file, it rewrites the content of files that are always there, so it gets its
+# own test.
 FILES_PER_MODULE = {
-    "docker": [
-        "Dockerfile",
-        ".dockerignore",
-        "docker-compose.yml",
-        "make/docker.mk",
-        "tests/api/test_docker_endpoints.py",
-        ".github/workflows/docker.yml",
-    ],
     "gcp": [
         "make/gcp.mk",
         "make/bigquery.mk",
@@ -48,24 +53,19 @@ FILES_PER_MODULE = {
     "prefect": [f"src/{PACKAGE}/interface/workflow.py"],
 }
 
-# `docker` and `gcp` overlap exactly once: publishing an image to Artifact
-# Registry needs both, and those targets live in make/docker.mk.
+# `gcp` reaches into make/docker.mk: publishing an image to Artifact Registry
+# needs both, and those targets live with the container, not with the cloud.
 GCP_TARGETS_IN_DOCKER_MAKE = ["artifact_registry", "docker_push_prod"]
 
-# Every combination the questions allow. GCP without Docker is not one of them:
-# Cloud Run deploys an image that only the Docker block builds, and a validator
-# refuses the answer rather than ticking a box the user un-ticked.
-ALL_SUBSETS = [
-    list(combo)
-    for size in range(len(MODULES) + 1)
-    for combo in combinations(MODULES, size)
-    if not ("gcp" in combo and "docker" not in combo)
-]
+ALL_SUBSETS = [list(combo) for size in range(len(MODULES) + 1) for combo in combinations(MODULES, size)]
 
 
 @pytest.mark.parametrize("modules", ALL_SUBSETS, ids=lambda modules: "+".join(modules) or "none")
 def test_each_building_block_brings_exactly_its_files(generate, modules):
     project = generate(modules=modules)
+
+    for path in ALWAYS_THERE:
+        assert (project / path).exists(), f"{path} belongs to every project"
 
     for module, files in FILES_PER_MODULE.items():
         for path in files:
@@ -74,15 +74,6 @@ def test_each_building_block_brings_exactly_its_files(generate, modules):
                 assert exists, f"{path} is missing from a project built with {module}"
             else:
                 assert not exists, f"{path} survived in a project built without {module}"
-
-
-def test_gcp_without_docker_is_refused(copie):
-    # The one answer the template will not take. Refusing it is the point:
-    # adding Docker back on its own would reverse a decision the user made.
-    result = copie.copy(extra_answers={**BASE_ANSWERS, "modules": ["gcp"]})
-
-    assert result.exit_code != 0
-    assert "docker" in str(result.exception)
 
 
 def test_mlflow_rewrites_content_instead_of_adding_files(generate):
@@ -97,16 +88,16 @@ def test_mlflow_rewrites_content_instead_of_adding_files(generate):
     assert "import mlflow" not in (without / registry).read_text()
 
 
-def test_the_gcp_targets_stay_out_of_a_docker_only_project(generate):
-    docker_make = (generate(modules=["docker"]) / "make/docker.mk").read_text()
+def test_the_gcp_targets_stay_out_when_gcp_was_not_ticked(generate):
+    docker_make = (generate(modules=[]) / "make/docker.mk").read_text()
 
     assert "docker_build_local" in docker_make
     for target in GCP_TARGETS_IN_DOCKER_MAKE:
         assert target not in docker_make, f"{target} needs GCP and should not be there"
 
 
-def test_the_gcp_targets_are_back_in_a_project_that_has_both(generate):
-    docker_make = (generate(modules=["docker", "gcp"]) / "make/docker.mk").read_text()
+def test_the_gcp_targets_are_back_when_gcp_was_ticked(generate):
+    docker_make = (generate(modules=["gcp"]) / "make/docker.mk").read_text()
 
     for target in GCP_TARGETS_IN_DOCKER_MAKE:
         assert target in docker_make

@@ -31,16 +31,11 @@ _exclude:
   - models/models/
   - models/params/
   - models/metrics/
-  # Optional building blocks, removed by the flags derived from `modules` — not
-  # by the answer itself, since GCP also brings Docker. The pattern is
-  # matched against the path as it will land in the project — so the templates
-  # suffix is NOT part of it: `Dockerfile` matches `Dockerfile.jinja` too.
-  - "{% if not with_docker %}Dockerfile{% endif %}"
-  - "{% if not with_docker %}.dockerignore{% endif %}"
-  - "{% if not with_docker %}docker-compose.yml{% endif %}"
-  - "{% if not with_docker %}make/docker.mk{% endif %}"
-  - "{% if not with_docker %}tests/api/test_docker_endpoints.py{% endif %}"
-  - "{% if not with_docker %}.github/workflows/docker.yml{% endif %}"
+  # Optional building blocks, removed by the flags derived from `modules`. The
+  # pattern is matched against the path as it will land in the project — so the
+  # templates suffix is NOT part of it: `make/gcp.mk` matches
+  # `make/gcp.mk.jinja` too, and the Docker block is not on this list at all:
+  # nothing removes it.
   - "{% if not with_gcp %}make/gcp.mk{% endif %}"
   - "{% if not with_gcp %}make/bigquery.mk{% endif %}"
   - "{% if not with_gcp %}make/vm.mk{% endif %}"
