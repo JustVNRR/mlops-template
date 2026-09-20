@@ -151,6 +151,7 @@ package and nothing to run. Everything a generated project receives lives under
 ├── pyproject.toml  # the template's OWN tests: nothing is built or published
 ├── tests/          # generates projects, then asserts on what came out
 ├── .github/        # generates a project, then validates THAT project
+├── LICENSE         # Apache-2.0, the license of the template itself
 └── template/       # everything the generated project receives, verbatim
 ```
 
