@@ -32,9 +32,11 @@ MODELS_DIR = LOCAL_REGISTRY_PATH / "models"
 PARAMS_DIR = LOCAL_REGISTRY_PATH / "params"
 METRICS_DIR = LOCAL_REGISTRY_PATH / "metrics"
 
-# Alias of the model served in production. MLflow uses it directly; without
-# MLflow it is only the default value of `load_model(stage=...)`.
-DEFAULT_ALIAS = "champion"
+{% if with_mlflow %}# Alias of the model served in production: MLflow uses it directly, and it is
+# the default value of `load_model(stage=...)`.
+{% else %}# Alias of the model served in production: the default value of
+# `load_model(stage=...)`.
+{% endif %}DEFAULT_ALIAS = "champion"
 
 
 # ==============================================================================
