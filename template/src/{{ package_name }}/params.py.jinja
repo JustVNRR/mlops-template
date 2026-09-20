@@ -47,18 +47,6 @@ load_dotenv(PROJECT_ROOT / ".env", override=False)
 # ==============================================================================
 # 🛠️ READING AND VALIDATING VARIABLES
 # ==============================================================================
-def _require(name: str) -> str:
-    """Read a mandatory variable, with an actionable error message."""
-    value = os.environ.get(name)
-    if value is None or not value.strip():
-        raise ValueError(
-            f"❌ {name} is missing or empty.\n"
-            f"   → Create your .env file from the provided template:\n"
-            f"     cp .env.sample .env"
-        )
-    return value.strip()
-
-
 def _optional(name: str) -> str | None:
     """Read an optional variable (empty strings normalised to None)."""
     value = os.environ.get(name)

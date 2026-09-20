@@ -7,18 +7,7 @@ export
 {% if with_gcp %}# Build the Service Account email dynamically
 SA_EMAIL = $(SA_NAME)@$(GCP_PROJECT).iam.gserviceaccount.com
 
-{% endif %}# Import the sub-makefiles, in the order they are meant to be run
-# include make/local.mk   # create the local environment
-{% if with_gcp %}# include make/gcp.mk
-# include make/bigquery.mk
-# include make/vm.mk
-# include make/artifact_registry.mk
-{% endif %}# include make/docker.mk
-{% if with_gcp %}# include make/cloudrun.mk
-{% endif %}# include make/pipeline.mk
-# include make/github.mk
-# include make/tests.mk
-include make/*.mk
+{% endif %}include make/*.mk
 
 # --- Automatic help menu ---
 .DEFAULT_GOAL := help
