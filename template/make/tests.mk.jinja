@@ -20,11 +20,13 @@ test_infrastructure: ## Run sanity checks for the project environment
 test_api_local: ## Run API tests locally (FastAPI in memory)
 	uv run pytest tests/api/test_endpoints.py
 
+# These two files are entirely marked `integration`, which `addopts` excludes by
+# default: without `-m integration`, pytest selects nothing and exits 5.
 test_api_docker: ## Run API tests on the local Docker container
-	uv run pytest tests/api/test_docker_endpoints.py
+	uv run pytest -m integration tests/api/test_docker_endpoints.py
 
 {% if with_gcp %}test_api_cloud: ## Run API tests on the deployed Cloud Run endpoint
-	uv run pytest tests/api/test_cloud_endpoints.py
+	uv run pytest -m integration tests/api/test_cloud_endpoints.py
 
 {% endif %}test_integration: ## Run the tests needing a real external service (excluded by default)
 	uv run pytest -m integration
