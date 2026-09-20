@@ -1,6 +1,6 @@
 """Regenerating over a project that already exists.
 
-`_skip_if_exists` in copier.yml promises that three files belong to the project
+`_skip_if_exists` in copier.yml promises that four files belong to the project
 from the moment it is generated, and that the template will never touch them
 again. That promise has to hold on the second pass, not only the first — which
 is the pass `copier update` performs, and the one that can destroy work.
@@ -23,6 +23,7 @@ OWNED_BY_THE_PROJECT = [
     ".gitignore",
     "README.md",
     "notebooks/data_exploration.ipynb",
+    "LICENSE",
 ]
 
 # Not in the list: the template has to be able to fix it in a project that

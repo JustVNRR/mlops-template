@@ -86,15 +86,50 @@ author_email:
     → Expected something like 'you@example.com'. The build backend reads this field and refuses to build the project when the address is malformed.
     {% endif %}
 
+# The list is the one NLeSC/python-template offers, so that the set of licenses
+# a project can be built under is not a decision this template makes on its
+# users' behalf. `Other` is the one difference: it becomes `Proprietary`, which
+# is something a project can actually be, and not a placeholder for a license
+# someone else will write. It is also the default.
+#
+# One LICENSE file per open license, and the condition lives in the FILENAME: a
+# name that renders to nothing means Copier writes nothing, so exactly one file
+# lands — and a proprietary project gets none. Handy consequence: the SPDX
+# identifier can be the value, and it reaches `pyproject.toml` with no mapping
+# table in between.
 license:
   type: str
   help: "Which license do you want to use?"
   choices:
-    - Proprietary
-    - MIT
-    - Apache-2.0
-    - BSD-3-Clause
+    Proprietary (all rights reserved):
+      value: Proprietary
+    Apache License, Version 2.0:
+      value: Apache-2.0
+    MIT license:
+      value: MIT
+    BSD license (3-clause):
+      value: BSD-3-Clause
+    ISC license:
+      value: ISC
+    GNU General Public License v3 or later:
+      value: GPL-3.0-or-later
+    GNU Lesser General Public License v3 or later:
+      value: LGPL-3.0-or-later
   default: Proprietary
+
+# The LICENSE file carries the line, so the question is only asked when there is
+# a file to put it in — a proprietary project has none. The validator repeats
+# the condition instead of trusting Copier to skip it: a question that is never
+# asked must not be able to fail.
+copyright_holder:
+  type: str
+  when: "{{ license != 'Proprietary' }}"
+  help: "Who is the copyright holder? (the author by default)"
+  default: "{{ author_name }}"
+  validator: >-
+    {% if license != 'Proprietary' and not copyright_holder %}
+    ❌ The copyright holder cannot be empty: the LICENSE file is written with it.
+    {% endif %}
 
 modules:
   type: str
