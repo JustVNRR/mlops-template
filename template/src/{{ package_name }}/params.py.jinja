@@ -122,13 +122,13 @@ EVALUATION_START_DATE = _optional("EVALUATION_START_DATE")
 # pipeline milestones; DEBUG adds the per-file chatter.
 LOG_LEVEL = (_optional("LOG_LEVEL") or "INFO").upper()
 
-{% if with_gcp or with_docker %}# --- Container image ---
+# --- Container image ---
 # The image name is needed to build locally, and again to deploy.
 GAR_IMAGE = _optional("GAR_IMAGE")
 {% if with_gcp %}# Memory granted to the Cloud Run service
 GAR_MEMORY = _optional("GAR_MEMORY")
 {% endif %}
-{% endif %}# --- Notifications (webhook) ---
+# --- Notifications (webhook) ---
 NOTIFY_BASE_URL = _optional("NOTIFY_BASE_URL")
 NOTIFY_CHANNEL = _optional("NOTIFY_CHANNEL")
 NOTIFY_AUTHOR = _optional("NOTIFY_AUTHOR")

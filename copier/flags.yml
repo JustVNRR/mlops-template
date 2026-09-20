@@ -7,7 +7,9 @@
 # another: `modules` alone cannot express "GCP brings Docker".
 #
 # Order matters, and it is the order of this file: a flag may only read the ones
-# declared before it, so `with_gcp` comes first and `with_docker` last.
+# declared before it. None of the three does today — the Docker block is not
+# optional, so it has no flag — but that rule is what makes a derived flag
+# possible at all.
 
 with_gcp:
   type: bool
@@ -23,11 +25,3 @@ with_prefect:
   type: bool
   when: false
   default: "{{ 'prefect' in modules }}"
-
-with_docker:
-  type: bool
-  when: false
-  # The `modules` validator refuses GCP without Docker, so the second half of
-  # this expression cannot fire today. It stays as the rule written down: GCP
-  # needs an image, and this is what says so if that validator is ever relaxed.
-  default: "{{ 'docker' in modules or with_gcp }}"

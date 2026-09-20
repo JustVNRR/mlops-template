@@ -205,6 +205,9 @@ jobs:
       # Whatever the `modules` question removes, the remaining project must
       # still install, lint, test and run. This job is what keeps the guards
       # honest as building blocks are added.
+      #
+      # It is also the container-without-GCP combination, which is the one that
+      # catches a GCP condition written in the wrong file.
       - name: Generate a project without any optional module
         run: |
           uvx copier copy --defaults \
@@ -216,17 +219,23 @@ jobs:
             -d "modules=[]" \
             . "$RUNNER_TEMP/minimal"
 
-      - name: Check the optional files are gone
+      - name: Check the optional files went and the container stayed
         working-directory: ${{ runner.temp }}/minimal
         run: |
-          for f in Dockerfile .dockerignore docker-compose.yml make/docker.mk \
-                   tests/api/test_docker_endpoints.py .github/workflows/docker.yml \
-                   make/gcp.mk make/bigquery.mk make/vm.mk make/cloudrun.mk \
+          for f in make/gcp.mk make/bigquery.mk make/vm.mk make/cloudrun.mk \
                    scripts/setup_vm.sh \
                    tests/infrastructure/test_gcp_setup.py \
                    tests/api/test_cloud_endpoints.py \
                    src/minimal_project/interface/workflow.py ; do
             if [ -e "$f" ]; then echo "❌ $f should have been excluded"; exit 1; fi
+          done
+
+          # The container is not an optional block: unticking everything must
+          # not take it away.
+          for f in Dockerfile .dockerignore docker-compose.yml make/docker.mk \
+                   tests/api/test_docker_endpoints.py \
+                   .github/workflows/docker.yml ; do
+            if [ ! -e "$f" ]; then echo "❌ $f belongs to every project"; exit 1; fi
           done
 
           # A surviving import only shows up at runtime, on someone else's
@@ -236,16 +245,28 @@ jobs:
             exit 1
           fi
 
-          # `.dockerignore` is itself excluded when docker is unchecked, so the
-          # loop skips what is not there.
           for f in README.md .env.sample .gitignore .dockerignore .github ; do
-            [ -e "$f" ] || continue
-            if grep -rn -i "docker\|gcp\|bigquery\|gcloud\|mlflow\|prefect" "$f" ; then
+            if grep -rn -i "gcp\|bigquery\|gcloud\|mlflow\|prefect" "$f" ; then
               echo "❌ $f still mentions an optional building block"
               exit 1
             fi
           done
-          echo "✅ no optional building block survived"
+          echo "✅ no optional building block survived, and the container did"
+
+      # The Artifact Registry targets live in make/docker.mk — they build an
+      # image — but they also need GCP. This project has the first and not the
+      # second, so it is where a wrong condition shows up.
+      - name: Check the GCP targets stayed out
+        working-directory: ${{ runner.temp }}/minimal
+        run: |
+          targets=$(make help | sed 's/\x1b\[[0-9;]*m//g')
+          echo "$targets" | grep -q docker_build_local || { echo "❌ the local build target is missing"; exit 1; }
+          echo "$targets" | grep -q test_api_docker   || { echo "❌ the container test target is missing"; exit 1; }
+          if echo "$targets" | grep -qE "artifact_registry|cloudrun|docker_push_prod" ; then
+            echo "❌ a GCP-only target survived in a project without GCP"
+            exit 1
+          fi
+          echo "✅ the container is there and the GCP targets are not"
 
       - name: Install dependencies
         working-directory: ${{ runner.temp }}/minimal
@@ -262,36 +283,6 @@ jobs:
           uv run ruff format --check .
           uv run pytest
           make run_all
-
-      # The two blocks overlap once: the Artifact Registry targets live in
-      # make/docker.mk because they build an image, but they also need GCP.
-      # Docker without GCP is the combination that catches a wrong condition.
-      - name: Generate a project with Docker but no GCP
-        run: |
-          uvx copier copy --defaults \
-            -d "project_name=Docker Only" \
-            -d "package_name=docker_only" \
-            -d "author_name=$AUTHOR_NAME" \
-            -d "author_email=$AUTHOR_EMAIL" \
-            -d "license=$LICENSE" \
-            -d 'modules=["docker"]' \
-            . "$RUNNER_TEMP/dockeronly"
-
-      - name: Check the docker/gcp overlap is handled
-        working-directory: ${{ runner.temp }}/dockeronly
-        run: |
-          targets=$(make help | sed 's/\x1b\[[0-9;]*m//g')
-          echo "$targets" | grep -q docker_build_local || { echo "❌ the local build target is missing"; exit 1; }
-          echo "$targets" | grep -q test_api_docker   || { echo "❌ the container test target is missing"; exit 1; }
-          if echo "$targets" | grep -qE "artifact_registry|cloudrun|docker_push_prod" ; then
-            echo "❌ a GCP-only target survived in a project without GCP"
-            exit 1
-          fi
-          if [ -e make/gcp.mk ] || [ -e scripts/setup_vm.sh ] ; then
-            echo "❌ a GCP file survived"
-            exit 1
-          fi
-          echo "✅ the docker/gcp overlap is handled"
 
   # The answers are free text, and they land in files that have a syntax of
   # their own: a `"` in a project name used to produce an unreadable
