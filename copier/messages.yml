@@ -24,7 +24,7 @@ _message_after_copy: |
   The Dockerfile and CI pipelines rely on it (they install strictly in `--frozen` mode) and will crash if the file is missing from your repository.
 
   To test your setup:
-    - make run_all               # preprocess → train → evaluate → predict
+    - make run_pipeline          # preprocess → train → evaluate → predict
     - make run_api               # the API starts on http://127.0.0.1:8000
 
   Check README.md for further details

@@ -36,7 +36,7 @@ and downloads the required interpreter.
 cp .env.sample .env            # defaults are fine to start with
 uv sync                        # creates .venv/ AND uv.lock
 
-make run_all                   # preprocess -> train -> evaluate -> predict
+make run_pipeline              # preprocess -> train -> evaluate -> predict
 make run_api                   # the API starts on http://127.0.0.1:8000
 ```
 
@@ -44,7 +44,7 @@ Commit the `uv.lock` that `uv sync` just generated: the CI installs with
 `uv sync --frozen`, which fails without it, and so
 does the `Dockerfile`.
 
-`make run_all` works with **no cloud account at all**: the project ships with a
+`make run_pipeline` works with **no cloud account at all**: the project ships with a
 synthetic dataset, trains a reference scikit-learn model and produces
 predictions. Replace the pieces one at a time with your own afterwards (see
 [Adapting this project](#-adapting-this-project)).
@@ -123,7 +123,7 @@ make run_train         # fit, save the model and its metrics
 make run_evaluate      # evaluate the latest model
 make run_pred          # predict on a sample
 
-make run_all           # all four in a row
+make run_pipeline      # all four in a row
 ```
 
 Models and metrics land in `models/` (JSON for metrics, pickle for models). The
