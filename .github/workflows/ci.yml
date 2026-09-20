@@ -295,7 +295,7 @@ jobs:
           targets=$(make help | sed 's/\x1b\[[0-9;]*m//g')
           echo "$targets" | grep -q docker_build_local || { echo "❌ the local build target is missing"; exit 1; }
           echo "$targets" | grep -q test_api_docker   || { echo "❌ the container test target is missing"; exit 1; }
-          if echo "$targets" | grep -qE "artifact_registry|cloudrun|docker_push_prod" ; then
+          if echo "$targets" | grep -qE "artifact_registry|cloudrun" ; then
             echo "❌ a GCP-only target survived in a project without GCP"
             exit 1
           fi

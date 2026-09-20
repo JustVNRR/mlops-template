@@ -24,7 +24,7 @@ artifact_registry_auth: ## Let your Docker push to Artifact Registry
 	@echo "🔑 Configuring Docker authentication for GCP..."
 	gcloud auth configure-docker $(GCP_REGION)-docker.pkg.dev --quiet
 
-docker_build_prod: ## Build the Docker image for production (linux/amd64)
+artifact_registry_build: ## Build the production image (linux/amd64)
 	@echo "🏗️ Building production image..."
 	docker build \
 		--platform linux/amd64 \
@@ -32,6 +32,6 @@ docker_build_prod: ## Build the Docker image for production (linux/amd64)
 		-t $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/$(ARTIFACTSREPO)/$(GAR_IMAGE):prod \
 		.
 
-docker_push_prod: ## Push the production image to Artifact Registry
+artifact_registry_push: ## Push the production image to Artifact Registry
 	@echo "🚀 Pushing image to Artifact Registry..."
 	docker push $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/$(ARTIFACTSREPO)/$(GAR_IMAGE):prod
