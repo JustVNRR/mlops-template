@@ -202,11 +202,12 @@ to the user), `questions.yml` and `flags.yml`. Two rules come with it:
    either character, so they are injected as they are.
 
 5. **A condition tests a computed flag, never the answer list.** `{% if with_gcp %}`
-   rather than `{% if 'gcp' in modules %}`; the four flags are derived at the
-   bottom of `copier/flags.yml`. The two are not interchangeable — `modules` is what
-   was ticked, the flags are what the project is built with, and they differ
-   the moment one block implies another, which is precisely what `with_docker`
-   exists for. A file written against the list silently misses that.
+   rather than `{% if 'gcp' in modules %}`; the three flags are derived in
+   `copier/flags.yml`. The two are not interchangeable — `modules` is what was
+   ticked, the flags are what the project is built with, and they part company
+   the moment one block implies another. None does today, which is why each
+   flag is a single line, but a file written against the list would silently
+   miss the first block that does.
 
 Copier filters `template/` through `.gitignore` — **including the one at the
 repository root**, since its rules apply at every level. That cuts both ways: a

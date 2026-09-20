@@ -58,6 +58,16 @@ FILES_PER_MODULE = {
 # needs both, and those targets live with the container, not with the cloud.
 GCP_TARGETS_IN_DOCKER_MAKE = ["artifact_registry", "docker_push_prod"]
 
+# What a file copied without being rendered keeps: a Jinja substitution
+# (`{{ package_name }}`) or a tag (`{% if with_gcp %}`). The two shapes that
+# must NOT count are the ones a verbatim file is entitled to carry — a GitHub
+# expression (`${{ github.workflow }}`) and a Go template (`{{.Ports}}`, in the
+# docker API test).
+JINJA_LEFTOVER = re.compile(r"(?<!\$)\{\{\s*[A-Za-z_]|\{%")
+
+# Directories a generated project fills with other people's files.
+NOT_OURS = {".git", ".venv", "__pycache__", ".ruff_cache", ".pytest_cache"}
+
 # One LICENSE file per license, each holding the text it is named after. The
 # marker is a line that appears in that text and in no other — checked, since
 # the six files are one careless copy-paste apart. `Proprietary` has no marker:
@@ -166,12 +176,14 @@ def test_no_answer_placeholder_survives(generate):
     project = generate()
 
     # A file whose name lost its `.jinja` suffix is copied byte for byte, and
-    # keeps the placeholder — the generated project then fails at runtime,
+    # keeps its `{{ ... }}` — the generated project then fails at runtime,
     # somewhere else entirely.
     offenders = [
         path.relative_to(project).as_posix()
         for path in project.rglob("*")
-        if path.is_file() and "package_folder" in path.read_text(errors="ignore")
+        if path.is_file()
+        and not NOT_OURS.intersection(path.parts)
+        and JINJA_LEFTOVER.search(path.read_text(errors="ignore"))
     ]
     assert not offenders, f"a file was copied without being rendered: {offenders}"
 

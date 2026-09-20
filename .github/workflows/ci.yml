@@ -81,7 +81,16 @@ jobs:
         run: |
           test -f .copier-answers.yml || { echo "❌ .copier-answers.yml is missing"; exit 1; }
           test -f src/ci_project/params.py || { echo "❌ the package was not renamed"; exit 1; }
-          if grep -rn "package_folder" . ; then
+          # A file whose `.jinja` suffix was dropped is copied byte for byte and
+          # keeps its `{{ ... }}` or `{% ... %}`. The shapes a verbatim file is
+          # allowed to carry are not Jinja and must not match: a GitHub
+          # expression, and a Go template such as `{{.Ports}}`.
+          #
+          # The pattern is the one `tests/test_project.py` uses, lookbehind
+          # included. A literal dollar-brace cannot appear in this file: GitHub
+          # parses a run step for its own expressions, and would try to read it.
+          if grep -rnP '(?<!\$)\{\{\s*[A-Za-z_]|\{%' . \
+            --exclude-dir=.git --exclude-dir=.venv ; then
             echo "❌ a template placeholder survived: name the file *.jinja"
             exit 1
           fi
