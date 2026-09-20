@@ -225,15 +225,23 @@ def mlflow_run(func):
 
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
+        # No tracking URI, no tracking. A freshly generated project has none,
+        # and opening a run anyway is what fills the console with autologging
+        # output for a project that has not decided to track anything yet.
+        #
+        # Set MLFLOW_TRACKING_URI to turn the wrapper back on: a server URL, or
+        # `sqlite:///mlflow.db` to keep the runs next to the code (git-ignored).
+        # The plain-folder backend of MLflow 2 (`file:./mlruns`) is refused by
+        # MLflow 3, which is why this project no longer defaults to it.
+        if not MLFLOW_TRACKING_URI:
+            return func(*args, **kwargs)
+
         # A run left open (earlier exception, interrupted notebook cell…) makes
         # start_run() fail. Close it first.
         if mlflow.active_run():
             mlflow.end_run()
 
-        # Without an explicit URI, MLflow writes to ./mlruns (git-ignored):
-        # handy for local development without a tracking server.
-        if MLFLOW_TRACKING_URI:
-            mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+        mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
 
         if MLFLOW_EXPERIMENT:
             mlflow.set_experiment(experiment_name=MLFLOW_EXPERIMENT)
