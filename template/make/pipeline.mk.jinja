@@ -16,7 +16,7 @@ run_pred: ## Run the prediction step
 
 run_pipeline: run_preprocess run_train run_evaluate run_pred ## Run the full pipeline (preprocess train evaluate pred)
 
-run_api: ## Run the FastAPI application locally with hot-reloading
+run_local_api: ## Run the FastAPI application with hot-reloading
 	@echo "🚀 Starting FastAPI locally..."
 	uv run uvicorn {{ package_name }}.api.fast:app --host 0.0.0.0 --port 8000 --reload
 {% if with_prefect %}

@@ -37,7 +37,7 @@ cp .env.sample .env            # defaults are fine to start with
 uv sync                        # creates .venv/ AND uv.lock
 
 make run_pipeline              # preprocess -> train -> evaluate -> predict
-make run_api                   # the API starts on http://127.0.0.1:8000
+make run_local_api             # the API starts on http://127.0.0.1:8000
 ```
 
 Commit the `uv.lock` that `uv sync` just generated: the CI installs with
@@ -153,7 +153,7 @@ period.
 ## 🌐 The API
 
 ```bash
-make run_api
+make run_local_api
 ```
 
 | Route | Description |
