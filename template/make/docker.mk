@@ -11,7 +11,7 @@ docker_build_local: ## Build the Docker image locally for testing
 		--build-arg DOCKER_BASE_IMAGE=$(DOCKER_BASE_IMAGE) \
 		--tag=$(GAR_IMAGE):dev .
 
-docker_run_local: ## Run the local Docker container on port 8080
+docker_run_local: ## Run the local Docker container on port 8000
 	@echo "🏃‍♂️ Running container $(GAR_IMAGE):dev..."
-	@echo "👉 Go to http://localhost:8080"
-	docker run -it -e PORT=8000 -p 8080:8000 $(GAR_IMAGE):dev
+	@echo "👉 Go to http://localhost:8000"
+	docker run -it -e PORT=8000 -p 8000:8000 $(GAR_IMAGE):dev
