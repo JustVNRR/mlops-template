@@ -15,7 +15,7 @@ cd <project-folder>
 Copier asks a few questions, writes the project, and prints the next steps. No
 `git clone`, no renaming script, nothing to delete afterwards.
 
-The generated project runs `make run_all` immediately: it ships with a
+The generated project runs `make run_pipeline` immediately: it ships with a
 synthetic demonstration dataset, so the whole pipeline — preprocess, train,
 evaluate, predict — works before you have a cloud account or a single row of
 real data. Replacing the demonstration pieces with your own is the subject of

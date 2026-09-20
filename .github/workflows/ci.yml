@@ -133,7 +133,7 @@ jobs:
 
       - name: Run the pipeline end to end
         working-directory: ${{ runner.temp }}/generated
-        run: make run_all
+        run: make run_pipeline
 
   docker:
     name: Docker build & smoke test (generated project)
@@ -282,7 +282,7 @@ jobs:
           uv run ruff check .
           uv run ruff format --check .
           uv run pytest
-          make run_all
+          make run_pipeline
 
   # The answers are free text, and they land in files that have a syntax of
   # their own: a `"` in a project name used to produce an unreadable
