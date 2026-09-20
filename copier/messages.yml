@@ -27,9 +27,7 @@ _message_after_copy: |
     - make run_all               # preprocess → train → evaluate → predict
     - make run_api               # the API starts on http://127.0.0.1:8000
 
-  {% if with_docker and 'docker' not in modules %}  Note: GCP brought the Docker block along — Cloud Run deploys an image, and only the Docker block builds one.
-
-  {% endif %}  Check README.md for further details
+  Check README.md for further details
 
 _message_before_update: |
   Updating {{ _folder_name }} from the template.

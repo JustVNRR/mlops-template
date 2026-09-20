@@ -58,17 +58,17 @@ sections simply are not there — not commented out, absent.
 | `prefect` | orchestration of the full retraining cycle | `interface/workflow.py` in its entirety, `make run_workflow` |
 | `docker` | packaging the API as an image | the `Dockerfile`, `docker-compose.yml`, `make/docker.mk`, the Docker CI workflow |
 
-Every combination is meant to work, and `tests/test_project.py` tries all
-sixteen of them.
+Every combination the questions allow is meant to work, and
+`tests/test_project.py` tries all twelve of them.
 
-`gcp` and `docker` overlap, and in one direction the overlap is forced:
-Cloud Run deploys an image that only `make/docker.mk` knows how to build, so
-**ticking `gcp` ticks `docker` too** — otherwise the project ships a
-`cloudrun_deploy` target whose image nothing can ever produce. The answers file
-still records what was ticked; only the flags the template is rendered with
-differ, and the closing message says so. Publishing an image to Artifact
-Registry needs both blocks as well, which is why those targets live in
-`make/docker.mk` under a `gcp` condition.
+`gcp` and `docker` overlap, and the overlap is a rule rather than a
+convenience: Cloud Run deploys an image that only `make/docker.mk` knows how to
+build, so **`gcp` without `docker` is refused**. The question comes back and
+asks you to tick Docker again or to drop GCP. Nothing is re-ticked on your
+behalf — a template that silently reverses an answer teaches the user that the
+answers do not matter. Publishing an image to Artifact Registry needs both
+blocks as well, which is why those targets live in `make/docker.mk` under a
+`gcp` condition.
 
 ### What the project owns
 

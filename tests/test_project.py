@@ -52,40 +52,37 @@ FILES_PER_MODULE = {
 # Registry needs both, and those targets live in make/docker.mk.
 GCP_TARGETS_IN_DOCKER_MAKE = ["artifact_registry", "docker_push_prod"]
 
-ALL_SUBSETS = [list(combo) for size in range(len(MODULES) + 1) for combo in combinations(MODULES, size)]
-
-
-def effective_modules(ticked: list[str]) -> set[str]:
-    """The blocks a project is really built with, given what was ticked.
-
-    Ticking `gcp` ticks `docker` too: Cloud Run deploys an image that only the
-    Docker block knows how to build, so `copier.yml` derives `with_docker` from
-    `with_gcp` as well as from the answer. What was ticked is still what the
-    answers file records — the two differ on purpose.
-    """
-    selected = set(ticked)
-    if "gcp" in selected:
-        selected.add("docker")
-    return selected
+# Every combination the questions allow. GCP without Docker is not one of them:
+# Cloud Run deploys an image that only the Docker block builds, and a validator
+# refuses the answer rather than ticking a box the user un-ticked.
+ALL_SUBSETS = [
+    list(combo)
+    for size in range(len(MODULES) + 1)
+    for combo in combinations(MODULES, size)
+    if not ("gcp" in combo and "docker" not in combo)
+]
 
 
 @pytest.mark.parametrize("modules", ALL_SUBSETS, ids=lambda modules: "+".join(modules) or "none")
 def test_each_building_block_brings_exactly_its_files(generate, modules):
     project = generate(modules=modules)
-    expected = effective_modules(modules)
 
     for module, files in FILES_PER_MODULE.items():
         for path in files:
             exists = (project / path).exists()
-            if module in expected:
+            if module in modules:
                 assert exists, f"{path} is missing from a project built with {module}"
             else:
                 assert not exists, f"{path} survived in a project built without {module}"
 
 
-def test_gcp_brings_docker_with_it(generate):
-    # The one place where the answer and the flags disagree.
-    assert (generate(modules=["gcp"]) / "Dockerfile").exists()
+def test_gcp_without_docker_is_refused(copie):
+    # The one answer the template will not take. Refusing it is the point:
+    # adding Docker back on its own would reverse a decision the user made.
+    result = copie.copy(extra_answers={**BASE_ANSWERS, "modules": ["gcp"]})
+
+    assert result.exit_code != 0
+    assert "docker" in str(result.exception)
 
 
 def test_mlflow_rewrites_content_instead_of_adding_files(generate):
