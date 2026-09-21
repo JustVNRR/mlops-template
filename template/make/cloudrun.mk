@@ -6,7 +6,7 @@ cloudrun_deploy: ## Deploy the container to Google Cloud Run
 	@echo "🚀 Deploying $(GAR_IMAGE) to Cloud Run..."
 	gcloud run deploy $(GAR_IMAGE) \
 		--image $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/$(ARTIFACTSREPO)/$(GAR_IMAGE):prod \
-		--memory $(GAR_MEMORY) \
+		--memory $(CLOUDRUN_MEMORY) \
 		--region $(GCP_REGION) \
 		--project $(GCP_PROJECT) \
 		--allow-unauthenticated

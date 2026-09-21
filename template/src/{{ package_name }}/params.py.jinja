@@ -114,7 +114,7 @@ LOG_LEVEL = (_optional("LOG_LEVEL") or "INFO").upper()
 # The image name is needed to build locally, and again to deploy.
 GAR_IMAGE = _optional("GAR_IMAGE")
 {% if with_gcp %}# Memory granted to the Cloud Run service
-GAR_MEMORY = _optional("GAR_MEMORY")
+CLOUDRUN_MEMORY = _optional("CLOUDRUN_MEMORY")
 {% endif %}
 {% if with_prefect %}# --- Notifications (the scheduling flow) ---
 NOTIFY_BASE_URL = _optional("NOTIFY_BASE_URL")
