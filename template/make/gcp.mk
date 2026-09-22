@@ -28,10 +28,20 @@ gcs_delete_bucket: ## Delete the Cloud Storage bucket and all its contents
 	gcloud storage rm --recursive gs://$(BUCKET_NAME)
 
 iam_setup_service_account: ## Create the Service Account and assign IAM roles
-	@echo "🤖 Creating or verifying Service Account..."
-	gcloud iam service-accounts create $(SA_NAME) \
-		--display-name="Service Account for $(INSTANCE) VM" \
-		--project=$(GCP_PROJECT) || true
+	@# Describe first, create only when absent - same shape as
+	@# artifact_registry_create, for the same reason: `|| true` reported every
+	@# failure (permission denied, API not enabled, name already taken) as a
+	@# success, and the two bindings below then failed on an account that was
+	@# never created. `vm_create` depends on this target, so the VM was built
+	@# anyway, with a service account that did not exist.
+	@if gcloud iam service-accounts describe "$(SA_EMAIL)" --project="$(GCP_PROJECT)" >/dev/null 2>&1; then \
+		echo "ℹ️  Service account $(SA_EMAIL) already exists."; \
+	else \
+		echo "🤖 Creating Service Account $(SA_NAME)..."; \
+		gcloud iam service-accounts create $(SA_NAME) \
+			--display-name="Service Account for $(INSTANCE) VM" \
+			--project=$(GCP_PROJECT); \
+	fi
 	@echo "🔐 Adding BigQuery Data Editor role..."
 	gcloud projects add-iam-policy-binding $(GCP_PROJECT) \
 		--member="serviceAccount:$(SA_EMAIL)" \
