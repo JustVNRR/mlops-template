@@ -3,6 +3,8 @@
 # ==============================================================================
 
 vm_create: iam_setup_service_account ## Create the virtual machine with IAM rights
+	$(call check_vars, INSTANCE GCP_PROJECT ZONE IMAGE_FAMILY IMAGE_PROJECT MACHINE_TYPE SA_NAME)
+	$(call confirm_action, Create the VM (billed), INSTANCE GCP_PROJECT ZONE MACHINE_TYPE)
 	@echo "🖥️ Creating VM $(INSTANCE) with service account $(SA_EMAIL)..."
 	gcloud compute instances create $(INSTANCE) \
 		--project=$(GCP_PROJECT) \
@@ -14,6 +16,8 @@ vm_create: iam_setup_service_account ## Create the virtual machine with IAM righ
 		--scopes=https://www.googleapis.com/auth/cloud-platform
 
 vm_setup: ## Send and execute the setup script on the VM
+	$(call check_vars, INSTANCE GCP_PROJECT ZONE)
+	$(call confirm_action, Run the setup script on the VM, INSTANCE GCP_PROJECT ZONE)
 	@echo "📦 Sending setup script to VM..."
 	gcloud compute scp scripts/setup_vm.sh $(INSTANCE):~/ \
 		--project=$(GCP_PROJECT) \
@@ -31,35 +35,27 @@ vm_setup: ## Send and execute the setup script on the VM
 		--command="rm ~/setup_vm.sh"
 
 vm_connect: ## Connect to the VM via SSH with agent forwarding
-	@if [ -z "$(INSTANCE)" ]; then \
-		echo "❌ ERROR: Missing INSTANCE name."; \
-		echo "👉 Try: make vm_connect INSTANCE=my-server"; \
-		exit 1; \
-	fi
+	$(call check_vars, INSTANCE GCP_PROJECT ZONE)
 	@echo "🔌 Connecting to $(INSTANCE)..."
 	gcloud compute ssh $(INSTANCE) --project=$(GCP_PROJECT) --zone=$(ZONE) --ssh-flag="-A"
 
 vm_start: ## Start the virtual machine (CPU billing resumes)
-	@if [ -z "$(INSTANCE)" ]; then \
-		echo "❌ ERROR: Missing INSTANCE name."; \
-		exit 1; \
-	fi
+	$(call check_vars, INSTANCE GCP_PROJECT ZONE)
 	@echo "🟢 Starting machine $(INSTANCE)..."
 	gcloud compute instances start $(INSTANCE) \
 		--project=$(GCP_PROJECT) \
 		--zone=$(ZONE)
 
 vm_stop: ## Stop the virtual machine (Save CPU billing)
-	@if [ -z "$(INSTANCE)" ]; then \
-		echo "❌ ERROR: Missing INSTANCE name."; \
-		exit 1; \
-	fi
+	$(call check_vars, INSTANCE GCP_PROJECT ZONE)
 	@echo "🔴 Stopping machine $(INSTANCE)... (CPU is no longer billed)"
 	gcloud compute instances stop $(INSTANCE) \
 		--project=$(GCP_PROJECT) \
 		--zone=$(ZONE)
 
 vm_delete: ## Delete the virtual machine permanently
+	$(call check_vars, INSTANCE GCP_PROJECT ZONE)
+	$(call confirm_action, Delete the VM permanently, INSTANCE GCP_PROJECT ZONE)
 	@echo "💣 Deleting machine $(INSTANCE) permanently..."
 	gcloud compute instances delete $(INSTANCE) \
 		--project=$(GCP_PROJECT) \
