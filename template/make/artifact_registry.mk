@@ -7,12 +7,22 @@
 # project receives.
 
 artifact_registry_create: ## Create the Docker repository in Artifact Registry
-	@echo "📦 Creating Artifact Registry repository $(ARTIFACTSREPO)..."
-	gcloud artifacts repositories create $(ARTIFACTSREPO) \
-		--repository-format=docker \
+	@# Describe first and create only when it is absent: the target stays
+	@# re-runnable, and a creation that really fails now fails the run - the
+	@# `|| true` it replaces reported every failure (API disabled, permission
+	@# denied, bad location) as a success, and the push found out much later.
+	@if gcloud artifacts repositories describe $(ARTIFACTSREPO) \
 		--location=$(GCP_REGION) \
-		--description="Docker repository $(ARTIFACTSREPO) for project $(GCP_PROJECT)" \
-		--project=$(GCP_PROJECT) || true
+		--project=$(GCP_PROJECT) >/dev/null 2>&1; then \
+		echo "ℹ️  Repository $(ARTIFACTSREPO) already exists."; \
+	else \
+		echo "📦 Creating Artifact Registry repository $(ARTIFACTSREPO)..."; \
+		gcloud artifacts repositories create $(ARTIFACTSREPO) \
+			--repository-format=docker \
+			--location=$(GCP_REGION) \
+			--description="Docker repository $(ARTIFACTSREPO) for project $(GCP_PROJECT)" \
+			--project=$(GCP_PROJECT); \
+	fi
 
 artifact_registry_role: ## Grant yourself permission to push to Artifact Registry
 	@echo "🔐 Adding Artifact Registry Writer role to your account..."
