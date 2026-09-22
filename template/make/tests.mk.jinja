@@ -6,9 +6,11 @@ lint: ## Check code style and quality with ruff
 	uv run ruff check .
 
 lint_fix: ## Auto-fix what ruff can fix
+	$(call require_clean_tree)
 	uv run ruff check --fix .
 
 format: ## Format the code with ruff
+	$(call require_clean_tree)
 	uv run ruff format .
 
 test_all: ## Run all tests in the project
