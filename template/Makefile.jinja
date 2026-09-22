@@ -44,3 +44,30 @@ clean: ## Clean Python cache, build files, and hidden OS files
 	@rm -rf build/ dist/ *.egg-info/ *.dist-info/
 	@rm -rf .pytest_cache/ .ruff_cache/ .mypy_cache/ .coverage
 	@echo "✅ Cleaned up successfully."
+
+# ==============================================================================
+# DYNAMIC SAFETY MACROS
+# ==============================================================================
+# Called by the targets in `make/*.mk`, and defined here because this file is
+# the only makefile the project loads before them.
+
+# Macro 1: Assert required variables are non-empty (Fail-fast validation)
+# Nothing is sent to a cloud command until the variables it reads are filled:
+# an empty value does not fail, it silently means something else (the account
+# of the active project, a resource with no name), and the mistake surfaces
+# much later, far from its cause.
+define check_vars
+	$(foreach var,$(1),$(if $(value $(var)),,$(error ❌ ERROR: Variable $(var) is required but unset — set it in your .env)))
+endef
+
+# Macro 2: Print target variables and prompt for operator confirmation
+define confirm_action
+	@echo "\n======================================================="
+	@echo " ⚠️  TARGET ACTION: $(1)"
+	@echo "======================================================="
+	@$(foreach var,$(2),echo " 🔹 $(var) : \033[33m$($(var))\033[0m";)
+	@echo "======================================================="
+	@read -p "Confirm execution? [y/N] " ans; \
+	if [ "$$ans" != "y" ] && [ "$$ans" != "Y" ]; then echo "\n❌ Operation cancelled by user." >&2; exit 1; fi
+	@echo "✅ Operation confirmed.\n"
+endef
