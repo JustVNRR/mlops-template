@@ -71,3 +71,21 @@ define confirm_action
 	if [ "$$ans" != "y" ] && [ "$$ans" != "Y" ]; then echo "\n❌ Operation cancelled by user." >&2; exit 1; fi
 	@echo "✅ Operation confirmed.\n"
 endef
+
+# Macro 3: Refuse to run when the working tree holds uncommitted work
+# For the targets that REWRITE files (`ruff --fix`, `ruff format`): their edits
+# would otherwise mix with work in progress, and the diff would no longer tell
+# the two apart. Both halves matter - the first covers unstaged edits, the
+# second what has been staged but not committed.
+# A project Copier has just generated is not a git repository yet (it ships a
+# .gitignore and a .gitattributes, and its owner runs `git init` when they
+# want one): there is nothing to mix with, so the check steps aside instead of
+# refusing a target that could not do any harm.
+define require_clean_tree
+	@if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then \
+		git diff --quiet -- . && git diff --cached --quiet -- . || { \
+			echo "❌ Uncommitted changes - commit or stash them first, or ruff will rewrite files you are still working on." >&2; \
+			exit 1; \
+		}; \
+	fi
+endef
