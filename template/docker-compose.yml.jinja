@@ -1,6 +1,6 @@
 services:
   api:
-    image: ${GAR_IMAGE}:dev
+    image: ${DOCKER_LOCAL_IMAGE}:dev
     env_file: .env
     ports:
       - "8000:8000"
