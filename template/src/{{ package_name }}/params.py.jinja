@@ -111,7 +111,8 @@ EVALUATION_START_DATE = _optional("EVALUATION_START_DATE")
 LOG_LEVEL = (_optional("LOG_LEVEL") or "INFO").upper()
 
 # --- Container image ---
-# The image name is needed to build locally, and again to deploy.
+# The deployed image's name - the Cloud Run service that carries it. The local
+# image's name is a Makefile concern (DOCKER_LOCAL_IMAGE), not the app's.
 GAR_IMAGE = _optional("GAR_IMAGE")
 {% if with_gcp %}# Memory granted to the Cloud Run service
 CLOUDRUN_MEMORY = _optional("CLOUDRUN_MEMORY")

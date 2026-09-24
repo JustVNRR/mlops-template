@@ -21,7 +21,7 @@ TEST_PARAMS = {
 # Field returned by /predict (see api/schemas.PredictionResponse)
 EXPECTED_PREDICT_KEY = "prediction"
 
-IMAGE_NAME = f"{os.environ.get('GAR_IMAGE')}:dev"
+IMAGE_NAME = f"{os.environ.get('DOCKER_LOCAL_IMAGE')}:dev"
 
 
 def _running_container_port() -> str | None:
@@ -59,7 +59,7 @@ def service_url() -> str:
             f"❌ No running container for image '{IMAGE_NAME}'.\n"
             f"   Check that:\n"
             f"     1. your container is running (make docker_run_local)\n"
-            f"     2. the image is named $GAR_IMAGE:dev"
+            f"     2. the image is named $DOCKER_LOCAL_IMAGE:dev"
         )
 
     return f"http://localhost:{port}"
